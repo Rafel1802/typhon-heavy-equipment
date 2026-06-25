@@ -1,0 +1,15 @@
+{
+  "name": "TYPHON — Heavy Equipment",
+  "short_name": "TYPHON",
+  "description": "Premium mobile commerce for heavy construction machinery, attachments and parts.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0B0F",
+  "theme_color": "#FFCC00",
+  "categories": ["shopping", "business"],
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
+  ]
+}
