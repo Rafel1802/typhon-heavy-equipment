@@ -6,6 +6,7 @@ import {
   Truck, ShieldCheck, Banknote, Headphones, Plus, Minus, X, Send,
   Sun, Moon, ArrowRight, Tag, Zap, MapPin, CheckCircle2, Clock,
   FileText, MessageCircle, Settings, LogOut, BadgeCheck, Filter,
+  Shield,
 } from "lucide-react";
 
 import excavator from "@/assets/excavator.jpg";
@@ -15,6 +16,11 @@ import forklift from "@/assets/forklift.jpg";
 import attachment from "@/assets/attachment.jpg";
 import scissorlift from "@/assets/scissorlift.jpg";
 import hero1 from "@/assets/hero1.jpg";
+
+import {
+  AuthScreen, CheckoutFlow, OrderPlaced, CouponsScreen,
+  AdminDashboard, NotificationsSheet,
+} from "@/components/typhon-extras";
 
 export const Route = createFileRoute("/")({
   head: () => ({
