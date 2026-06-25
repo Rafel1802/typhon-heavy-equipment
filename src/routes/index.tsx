@@ -6,6 +6,7 @@ import {
   Truck, ShieldCheck, Banknote, Headphones, Plus, Minus, X, Send,
   Sun, Moon, ArrowRight, Tag, Zap, MapPin, CheckCircle2, Clock,
   FileText, MessageCircle, Settings, LogOut, BadgeCheck, Filter,
+  Shield,
 } from "lucide-react";
 
 import excavator from "@/assets/excavator.jpg";
@@ -15,6 +16,11 @@ import forklift from "@/assets/forklift.jpg";
 import attachment from "@/assets/attachment.jpg";
 import scissorlift from "@/assets/scissorlift.jpg";
 import hero1 from "@/assets/hero1.jpg";
+
+import {
+  AuthScreen, CheckoutFlow, OrderPlaced, CouponsScreen,
+  AdminDashboard, NotificationsSheet,
+} from "@/components/typhon-extras";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -72,6 +78,14 @@ function App() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [cartOpen, setCartOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showOrderPlaced, setShowOrderPlaced] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [signedIn, setSignedIn] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -113,6 +127,13 @@ function App() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setIsAdmin(a => !a)}
+            className={`glass-strong rounded-full px-4 py-2 text-xs font-medium flex items-center gap-2 ${isAdmin ? "text-primary" : "text-white"}`}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            {isAdmin ? "Admin" : "Customer"}
+          </button>
+          <button
             onClick={() => setTheme(t => (t === "dark" ? "light" : "dark"))}
             className="glass-strong rounded-full px-4 py-2 text-xs font-medium flex items-center gap-2 text-white"
           >
@@ -137,6 +158,13 @@ function App() {
               cart={cart} favs={favs} addToCart={addToCart} toggleFav={toggleFav}
               onOpenCart={() => setCartOpen(true)} cartCount={cartCount}
               setTab={setTab}
+              onOpenAuth={() => setShowAuth(true)}
+              onOpenCoupons={() => setShowCoupons(true)}
+              onOpenAdmin={() => setShowAdmin(true)}
+              onOpenNotifs={() => setShowNotifs(true)}
+              signedIn={signedIn}
+              isAdmin={isAdmin}
+              onSignOut={() => setSignedIn(false)}
             />
 
             {/* Floating AI button (not on AI tab) */}
@@ -153,13 +181,24 @@ function App() {
               </button>
             )}
 
+            {/* Admin floating button */}
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdmin(true)}
+                className="absolute bottom-28 left-5 z-30 h-14 w-14 rounded-full bg-foreground text-background grid place-items-center shadow-2xl animate-float-in"
+                aria-label="Admin"
+              >
+                <Shield className="h-6 w-6 text-primary" />
+              </button>
+            )}
+
             {/* Bottom nav */}
             <BottomNav tab={tab} setTab={setTab} cartCount={cartCount} />
           </div>
         </div>
 
         <p className="text-center text-white/40 text-xs mt-6">
-          Tap a product to open detail · Use the bottom tabs to navigate · Toggle theme above
+          Toggle Admin / Customer above · Tap product cards · Bottom nav switches screens
         </p>
       </div>
 
@@ -180,8 +219,27 @@ function App() {
           cart={cart} total={cartTotal}
           onClose={() => setCartOpen(false)}
           onInc={addToCart} onDec={decCart}
+          onCheckout={() => { setCartOpen(false); setShowCheckout(true); }}
         />
       )}
+
+      {showAuth && (
+        <AuthScreen
+          onClose={() => setShowAuth(false)}
+          onSuccess={() => { setSignedIn(true); setShowAuth(false); }}
+        />
+      )}
+      {showCheckout && (
+        <CheckoutFlow
+          total={cartTotal}
+          onClose={() => setShowCheckout(false)}
+          onPlaced={() => { setCart({}); setShowCheckout(false); setShowOrderPlaced(true); }}
+        />
+      )}
+      {showOrderPlaced && <OrderPlaced onClose={() => { setShowOrderPlaced(false); setTab("orders"); }} />}
+      {showCoupons && <CouponsScreen onClose={() => setShowCoupons(false)} />}
+      {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
+      {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
     </div>
   );
 }
@@ -192,6 +250,8 @@ function Screen(props: {
   cart: Record<string, number>; favs: Set<string>;
   addToCart: (id: string) => void; toggleFav: (id: string) => void;
   onOpenCart: () => void; cartCount: number; setTab: (t: TabKey) => void;
+  onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
+  onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
 }) {
   const { tab } = props;
   return (
@@ -200,7 +260,7 @@ function Screen(props: {
       {tab === "shop" && <ShopScreen {...props} />}
       {tab === "ai" && <AIScreen />}
       {tab === "orders" && <OrdersScreen />}
-      {tab === "account" && <AccountScreen />}
+      {tab === "account" && <AccountScreen {...props} />}
     </div>
   );
 }
@@ -209,6 +269,7 @@ function Screen(props: {
 function HomeScreen(props: {
   onOpenProduct: (p: Product) => void; onOpenCart: () => void; cartCount: number;
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
+  onOpenNotifs?: () => void; setTab?: (t: TabKey) => void;
 }) {
   return (
     <div className="space-y-5">
@@ -219,14 +280,16 @@ function HomeScreen(props: {
           <h1 className="text-xl font-black tracking-tight">Build bigger, John.</h1>
         </div>
         <div className="flex items-center gap-2">
-          <IconBtn><Bell className="h-4 w-4" /><Dot /></IconBtn>
+          <button onClick={props.onOpenNotifs}>
+            <IconBtn><Bell className="h-4 w-4" /><Dot /></IconBtn>
+          </button>
           <button onClick={props.onOpenCart} className="relative">
             <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
             {props.cartCount > 0 && (
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
           </button>
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-bold text-sm">JM</div>
+          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
         </div>
       </div>
 
@@ -581,16 +644,21 @@ function Timeline({ step }: { step: number }) {
 }
 
 /* ===================== ACCOUNT ===================== */
-function AccountScreen() {
+function AccountScreen(props: {
+  onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
+  onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+}) {
   const items = [
-    { icon: Heart, label: "Favorites", count: 12 },
-    { icon: FileText, label: "My Quotes", count: 3 },
-    { icon: MapPin, label: "Addresses", count: 2 },
-    { icon: Bell, label: "Notifications" },
-    { icon: BadgeCheck, label: "Verified Business" },
-    { icon: Settings, label: "Settings" },
-    { icon: Headphones, label: "Help & Support" },
-    { icon: LogOut, label: "Sign Out", danger: true },
+    { icon: Heart, label: "Favorites", count: 12, onClick: () => {} },
+    { icon: Tag, label: "My Coupons", count: 4, onClick: props.onOpenCoupons },
+    { icon: FileText, label: "My Quotes", count: 3, onClick: () => {} },
+    { icon: MapPin, label: "Addresses", count: 2, onClick: () => {} },
+    { icon: Bell, label: "Notifications", onClick: props.onOpenNotifs },
+    { icon: BadgeCheck, label: "Verified Business", onClick: () => {} },
+    ...(props.isAdmin ? [{ icon: Shield, label: "Admin Dashboard", onClick: props.onOpenAdmin }] : []),
+    { icon: Settings, label: "Settings", onClick: () => {} },
+    { icon: Headphones, label: "Help & Support", onClick: () => {} },
+    { icon: LogOut, label: props.signedIn ? "Sign Out" : "Sign In", danger: props.signedIn, onClick: props.signedIn ? props.onSignOut : props.onOpenAuth },
   ];
   return (
     <div className="space-y-5">
@@ -599,18 +667,31 @@ function AccountScreen() {
       </div>
 
       <div className="px-5">
-        <div className="glass rounded-3xl p-4 flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="font-black">John Miller</p>
-              <BadgeCheck className="h-4 w-4 text-primary fill-primary text-primary-foreground" />
+        {props.signedIn ? (
+          <div className="glass rounded-3xl p-4 flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="font-black">John Miller</p>
+                <BadgeCheck className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground">Miller Construction Co.</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Dallas, TX · Member since 2024</p>
             </div>
-            <p className="text-xs text-muted-foreground">Miller Construction Co.</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Dallas, TX · Member since 2024</p>
+            <button className="text-xs font-bold text-primary">Edit</button>
           </div>
-          <button className="text-xs font-bold text-primary">Edit</button>
-        </div>
+        ) : (
+          <button onClick={props.onOpenAuth} className="w-full glass rounded-3xl p-5 flex items-center gap-4 text-left">
+            <div className="h-14 w-14 rounded-2xl bg-primary grid place-items-center text-primary-foreground">
+              <User className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <p className="font-black">Sign in to TYPHON</p>
+              <p className="text-xs text-muted-foreground">Track orders, save favorites, get quotes</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       <div className="px-5 grid grid-cols-3 gap-3">
@@ -627,8 +708,8 @@ function AccountScreen() {
       </div>
 
       <div className="px-5 space-y-1">
-        {items.map(({ icon: Icon, label, count, danger }) => (
-          <button key={label} className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-muted transition-colors">
+        {items.map(({ icon: Icon, label, count, danger, onClick }) => (
+          <button key={label} onClick={onClick} className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-muted transition-colors">
             <div className={`h-9 w-9 rounded-xl grid place-items-center ${danger ? "bg-error/10 text-error" : "bg-muted text-foreground"}`}>
               <Icon className="h-4 w-4" />
             </div>
@@ -884,9 +965,10 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
 }
 
 /* ===================== CART DRAWER ===================== */
-function CartDrawer({ cart, total, onClose, onInc, onDec }: {
+function CartDrawer({ cart, total, onClose, onInc, onDec, onCheckout }: {
   cart: Record<string, number>; total: number;
   onClose: () => void; onInc: (id: string) => void; onDec: (id: string) => void;
+  onCheckout: () => void;
 }) {
   const items = Object.entries(cart).map(([id, q]) => ({ p: PRODUCTS.find(x => x.id === id)!, q }));
   return (
@@ -946,7 +1028,7 @@ function CartDrawer({ cart, total, onClose, onInc, onDec }: {
               <span className="font-bold">Total</span>
               <span className="text-2xl font-black">{fmt(total)}</span>
             </div>
-            <button className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-4 flex items-center justify-center gap-2">
+            <button onClick={onCheckout} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-4 flex items-center justify-center gap-2">
               Checkout <ArrowRight className="h-4 w-4" />
             </button>
             <button className="w-full rounded-2xl bg-muted text-foreground font-bold py-3 text-xs flex items-center justify-center gap-2">
