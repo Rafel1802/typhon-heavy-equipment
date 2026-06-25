@@ -269,6 +269,7 @@ function Screen(props: {
 function HomeScreen(props: {
   onOpenProduct: (p: Product) => void; onOpenCart: () => void; cartCount: number;
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
+  onOpenNotifs?: () => void; setTab?: (t: TabKey) => void;
 }) {
   return (
     <div className="space-y-5">
@@ -279,14 +280,16 @@ function HomeScreen(props: {
           <h1 className="text-xl font-black tracking-tight">Build bigger, John.</h1>
         </div>
         <div className="flex items-center gap-2">
-          <IconBtn><Bell className="h-4 w-4" /><Dot /></IconBtn>
+          <button onClick={props.onOpenNotifs}>
+            <IconBtn><Bell className="h-4 w-4" /><Dot /></IconBtn>
+          </button>
           <button onClick={props.onOpenCart} className="relative">
             <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
             {props.cartCount > 0 && (
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
           </button>
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-bold text-sm">JM</div>
+          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
         </div>
       </div>
 
