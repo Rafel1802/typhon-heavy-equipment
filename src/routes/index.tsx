@@ -962,9 +962,10 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
 }
 
 /* ===================== CART DRAWER ===================== */
-function CartDrawer({ cart, total, onClose, onInc, onDec }: {
+function CartDrawer({ cart, total, onClose, onInc, onDec, onCheckout }: {
   cart: Record<string, number>; total: number;
   onClose: () => void; onInc: (id: string) => void; onDec: (id: string) => void;
+  onCheckout: () => void;
 }) {
   const items = Object.entries(cart).map(([id, q]) => ({ p: PRODUCTS.find(x => x.id === id)!, q }));
   return (
