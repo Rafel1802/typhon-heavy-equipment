@@ -641,16 +641,21 @@ function Timeline({ step }: { step: number }) {
 }
 
 /* ===================== ACCOUNT ===================== */
-function AccountScreen() {
+function AccountScreen(props: {
+  onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
+  onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+}) {
   const items = [
-    { icon: Heart, label: "Favorites", count: 12 },
-    { icon: FileText, label: "My Quotes", count: 3 },
-    { icon: MapPin, label: "Addresses", count: 2 },
-    { icon: Bell, label: "Notifications" },
-    { icon: BadgeCheck, label: "Verified Business" },
-    { icon: Settings, label: "Settings" },
-    { icon: Headphones, label: "Help & Support" },
-    { icon: LogOut, label: "Sign Out", danger: true },
+    { icon: Heart, label: "Favorites", count: 12, onClick: () => {} },
+    { icon: Tag, label: "My Coupons", count: 4, onClick: props.onOpenCoupons },
+    { icon: FileText, label: "My Quotes", count: 3, onClick: () => {} },
+    { icon: MapPin, label: "Addresses", count: 2, onClick: () => {} },
+    { icon: Bell, label: "Notifications", onClick: props.onOpenNotifs },
+    { icon: BadgeCheck, label: "Verified Business", onClick: () => {} },
+    ...(props.isAdmin ? [{ icon: Shield, label: "Admin Dashboard", onClick: props.onOpenAdmin }] : []),
+    { icon: Settings, label: "Settings", onClick: () => {} },
+    { icon: Headphones, label: "Help & Support", onClick: () => {} },
+    { icon: LogOut, label: props.signedIn ? "Sign Out" : "Sign In", danger: props.signedIn, onClick: props.signedIn ? props.onSignOut : props.onOpenAuth },
   ];
   return (
     <div className="space-y-5">
@@ -659,18 +664,31 @@ function AccountScreen() {
       </div>
 
       <div className="px-5">
-        <div className="glass rounded-3xl p-4 flex items-center gap-4">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
-          <div className="flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="font-black">John Miller</p>
-              <BadgeCheck className="h-4 w-4 text-primary fill-primary text-primary-foreground" />
+        {props.signedIn ? (
+          <div className="glass rounded-3xl p-4 flex items-center gap-4">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
+            <div className="flex-1">
+              <div className="flex items-center gap-1.5">
+                <p className="font-black">John Miller</p>
+                <BadgeCheck className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground">Miller Construction Co.</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Dallas, TX · Member since 2024</p>
             </div>
-            <p className="text-xs text-muted-foreground">Miller Construction Co.</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Dallas, TX · Member since 2024</p>
+            <button className="text-xs font-bold text-primary">Edit</button>
           </div>
-          <button className="text-xs font-bold text-primary">Edit</button>
-        </div>
+        ) : (
+          <button onClick={props.onOpenAuth} className="w-full glass rounded-3xl p-5 flex items-center gap-4 text-left">
+            <div className="h-14 w-14 rounded-2xl bg-primary grid place-items-center text-primary-foreground">
+              <User className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <p className="font-black">Sign in to TYPHON</p>
+              <p className="text-xs text-muted-foreground">Track orders, save favorites, get quotes</p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+        )}
       </div>
 
       <div className="px-5 grid grid-cols-3 gap-3">
@@ -687,8 +705,8 @@ function AccountScreen() {
       </div>
 
       <div className="px-5 space-y-1">
-        {items.map(({ icon: Icon, label, count, danger }) => (
-          <button key={label} className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-muted transition-colors">
+        {items.map(({ icon: Icon, label, count, danger, onClick }) => (
+          <button key={label} onClick={onClick} className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-muted transition-colors">
             <div className={`h-9 w-9 rounded-xl grid place-items-center ${danger ? "bg-error/10 text-error" : "bg-muted text-foreground"}`}>
               <Icon className="h-4 w-4" />
             </div>
