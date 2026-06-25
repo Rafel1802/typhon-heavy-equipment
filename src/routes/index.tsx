@@ -127,6 +127,13 @@ function App() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setIsAdmin(a => !a)}
+            className={`glass-strong rounded-full px-4 py-2 text-xs font-medium flex items-center gap-2 ${isAdmin ? "text-primary" : "text-white"}`}
+          >
+            <Shield className="h-3.5 w-3.5" />
+            {isAdmin ? "Admin" : "Customer"}
+          </button>
+          <button
             onClick={() => setTheme(t => (t === "dark" ? "light" : "dark"))}
             className="glass-strong rounded-full px-4 py-2 text-xs font-medium flex items-center gap-2 text-white"
           >
