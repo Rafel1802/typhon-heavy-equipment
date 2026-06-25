@@ -1025,7 +1025,7 @@ function CartDrawer({ cart, total, onClose, onInc, onDec, onCheckout }: {
               <span className="font-bold">Total</span>
               <span className="text-2xl font-black">{fmt(total)}</span>
             </div>
-            <button className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-4 flex items-center justify-center gap-2">
+            <button onClick={onCheckout} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-4 flex items-center justify-center gap-2">
               Checkout <ArrowRight className="h-4 w-4" />
             </button>
             <button className="w-full rounded-2xl bg-muted text-foreground font-bold py-3 text-xs flex items-center justify-center gap-2">
