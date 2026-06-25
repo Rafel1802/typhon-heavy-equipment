@@ -158,6 +158,13 @@ function App() {
               cart={cart} favs={favs} addToCart={addToCart} toggleFav={toggleFav}
               onOpenCart={() => setCartOpen(true)} cartCount={cartCount}
               setTab={setTab}
+              onOpenAuth={() => setShowAuth(true)}
+              onOpenCoupons={() => setShowCoupons(true)}
+              onOpenAdmin={() => setShowAdmin(true)}
+              onOpenNotifs={() => setShowNotifs(true)}
+              signedIn={signedIn}
+              isAdmin={isAdmin}
+              onSignOut={() => setSignedIn(false)}
             />
 
             {/* Floating AI button (not on AI tab) */}
@@ -174,13 +181,24 @@ function App() {
               </button>
             )}
 
+            {/* Admin floating button */}
+            {isAdmin && (
+              <button
+                onClick={() => setShowAdmin(true)}
+                className="absolute bottom-28 left-5 z-30 h-14 w-14 rounded-full bg-foreground text-background grid place-items-center shadow-2xl animate-float-in"
+                aria-label="Admin"
+              >
+                <Shield className="h-6 w-6 text-primary" />
+              </button>
+            )}
+
             {/* Bottom nav */}
             <BottomNav tab={tab} setTab={setTab} cartCount={cartCount} />
           </div>
         </div>
 
         <p className="text-center text-white/40 text-xs mt-6">
-          Tap a product to open detail · Use the bottom tabs to navigate · Toggle theme above
+          Toggle Admin / Customer above · Tap product cards · Bottom nav switches screens
         </p>
       </div>
 
@@ -201,8 +219,27 @@ function App() {
           cart={cart} total={cartTotal}
           onClose={() => setCartOpen(false)}
           onInc={addToCart} onDec={decCart}
+          onCheckout={() => { setCartOpen(false); setShowCheckout(true); }}
         />
       )}
+
+      {showAuth && (
+        <AuthScreen
+          onClose={() => setShowAuth(false)}
+          onSuccess={() => { setSignedIn(true); setShowAuth(false); }}
+        />
+      )}
+      {showCheckout && (
+        <CheckoutFlow
+          total={cartTotal}
+          onClose={() => setShowCheckout(false)}
+          onPlaced={() => { setCart({}); setShowCheckout(false); setShowOrderPlaced(true); }}
+        />
+      )}
+      {showOrderPlaced && <OrderPlaced onClose={() => { setShowOrderPlaced(false); setTab("orders"); }} />}
+      {showCoupons && <CouponsScreen onClose={() => setShowCoupons(false)} />}
+      {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
+      {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
     </div>
   );
 }
