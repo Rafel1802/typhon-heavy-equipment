@@ -78,6 +78,14 @@ function App() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [favs, setFavs] = useState<Set<string>>(new Set());
   const [cartOpen, setCartOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [showOrderPlaced, setShowOrderPlaced] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [signedIn, setSignedIn] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
