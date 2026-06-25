@@ -250,6 +250,8 @@ function Screen(props: {
   cart: Record<string, number>; favs: Set<string>;
   addToCart: (id: string) => void; toggleFav: (id: string) => void;
   onOpenCart: () => void; cartCount: number; setTab: (t: TabKey) => void;
+  onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
+  onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
 }) {
   const { tab } = props;
   return (
@@ -258,7 +260,7 @@ function Screen(props: {
       {tab === "shop" && <ShopScreen {...props} />}
       {tab === "ai" && <AIScreen />}
       {tab === "orders" && <OrdersScreen />}
-      {tab === "account" && <AccountScreen />}
+      {tab === "account" && <AccountScreen {...props} />}
     </div>
   );
 }
