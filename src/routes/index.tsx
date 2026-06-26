@@ -169,6 +169,7 @@ function App() {
               signedIn={signedIn}
               isAdmin={isAdmin}
               onSignOut={() => setSignedIn(false)}
+              cartBounce={cartBounce}
             />
 
             {/* Floating AI button (not on AI tab) */}
