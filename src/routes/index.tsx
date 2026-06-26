@@ -257,13 +257,14 @@ function Screen(props: {
   onOpenCart: () => void; cartCount: number; setTab: (t: TabKey) => void;
   onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
   onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+  cartBounce?: number;
 }) {
   const { tab } = props;
   return (
     <div key={tab} className="h-full overflow-y-auto no-scrollbar pb-32 pt-12 animate-float-in">
       {tab === "home" && <HomeScreen {...props} />}
       {tab === "shop" && <ShopScreen {...props} />}
-      {tab === "ai" && <AIScreen />}
+      {tab === "ai" && <AIScreen onOpenProduct={props.onOpenProduct} addToCart={props.addToCart} />}
       {tab === "orders" && <OrdersScreen />}
       {tab === "account" && <AccountScreen {...props} />}
     </div>
