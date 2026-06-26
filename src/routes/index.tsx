@@ -86,6 +86,7 @@ function App() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [cartBounce, setCartBounce] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -100,7 +101,10 @@ function App() {
     [cart]
   );
 
-  const addToCart = (id: string) => setCart(c => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  const addToCart = (id: string) => {
+    setCart(c => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+    setCartBounce(n => n + 1);
+  };
   const decCart = (id: string) => setCart(c => {
     const next = { ...c };
     if (!next[id]) return next;
