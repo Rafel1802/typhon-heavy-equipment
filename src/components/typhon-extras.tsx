@@ -21,7 +21,7 @@ export function AuthScreen({ onClose, onSuccess }: { onClose: () => void; onSucc
           <button onClick={onClose} className="absolute top-4 right-4 h-9 w-9 rounded-full bg-card/80 backdrop-blur grid place-items-center">
             <X className="h-4 w-4" />
           </button>
-          <div className="h-14 w-14 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-black text-2xl shadow-[0_0_30px_rgba(255,204,0,0.5)]">T</div>
+          <div className="h-14 w-14 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-black text-2xl shadow-[0_0_30px_rgba(10,132,255,0.55)]">T</div>
           <h2 className="text-2xl font-black tracking-tight mt-4">
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h2>
@@ -350,7 +350,7 @@ export function OrderPlaced({ onClose }: { onClose: () => void }) {
    COUPONS SCREEN
 ============================================================ */
 const COUPONS = [
-  { code: "SUMMER15", title: "15% off Compactors & Rollers", desc: "Min order $5,000 · Expires Aug 31", value: "15% OFF", color: "from-primary to-yellow-600" },
+  { code: "SUMMER15", title: "15% off Compactors & Rollers", desc: "Min order $5,000 · Expires Aug 31", value: "15% OFF", color: "from-primary to-blue-700" },
   { code: "FREESHIP", title: "Free expedited shipping", desc: "Any order over $10,000", value: "FREE SHIP", color: "from-emerald-500 to-teal-600" },
   { code: "NEW500", title: "$500 off first order", desc: "New customers only · No minimum", value: "$500 OFF", color: "from-blue-500 to-indigo-600" },
   { code: "FINANCE0", title: "0% APR for 12 months", desc: "Excavators & loaders · OAC", value: "0% APR", color: "from-fuchsia-500 to-pink-600" },
@@ -677,7 +677,7 @@ function AdminBanners() {
       </button>
       {banners.map(b => (
         <div key={b.title} className="glass rounded-2xl p-3 flex items-center gap-3">
-          <div className="h-12 w-16 rounded-lg bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground">
+          <div className="h-12 w-16 rounded-lg bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground">
             <ImageIcon className="h-5 w-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -703,7 +703,7 @@ function AdminCustomers() {
     <div className="space-y-3">
       {list.map(c => (
         <div key={c.email} className="glass rounded-2xl p-3 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xs">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-black text-xs">
             {c.name.split(" ").map(x => x[0]).slice(0, 2).join("")}
           </div>
           <div className="flex-1 min-w-0">

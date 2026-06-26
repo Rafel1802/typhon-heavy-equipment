@@ -38,39 +38,41 @@
   --muted: oklch(0.96 0.004 270);
   --muted-foreground: oklch(0.55 0.01 270);
   --border: oklch(0.92 0.005 270);
-  --primary: oklch(0.86 0.18 95);          /* #FFCC00 */
-  --primary-foreground: oklch(0.15 0 0);
-  --accent: oklch(0.15 0.005 270);
+  --primary: oklch(0.62 0.19 256);          /* #0A84FF iOS blue */
+  --primary-foreground: oklch(1 0 0);
+  --primary-glow: oklch(0.72 0.17 235);
+  --accent: oklch(0.55 0.22 264);
   --accent-foreground: oklch(1 0 0);
-  --ink: oklch(0.12 0 0);
+  --ink: oklch(0.12 0.02 260);
   --success: oklch(0.72 0.17 152);
   --warning: oklch(0.78 0.16 70);
   --error: oklch(0.65 0.22 27);
 
-  --glass-bg: rgba(255,255,255,0.62);
+  --glass-bg: rgba(240,247,255,0.55);
   --glass-border: rgba(255,255,255,0.7);
-  --glass-shadow: 0 12px 40px -10px rgba(15,15,25,0.18), 0 2px 8px rgba(15,15,25,0.06);
-  --glow-yellow: 0 0 40px rgba(255,204,0,0.45);
+  --glass-shadow: 0 12px 40px -10px rgba(10,40,90,0.22), 0 2px 8px rgba(10,40,90,0.08);
+  --glow-yellow: 0 0 48px rgba(10,132,255,0.55);
 }
 
 .dark {
-  --background: oklch(0.13 0.01 270);     /* #0B0B0F */
+  --background: oklch(0.16 0.02 255);     /* deep navy */
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0.18 0.012 270);          /* #17171C */
+  --card: oklch(0.21 0.03 255);
   --card-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.22 0.012 270);
-  --muted-foreground: oklch(0.65 0.01 270);
-  --border: oklch(1 0 0 / 8%);
-  --primary: oklch(0.86 0.18 95);
-  --primary-foreground: oklch(0.12 0 0);
-  --accent: oklch(1 0 0);
-  --accent-foreground: oklch(0.12 0 0);
+  --muted: oklch(0.26 0.025 255);
+  --muted-foreground: oklch(0.7 0.02 250);
+  --border: oklch(1 0 0 / 10%);
+  --primary: oklch(0.7 0.18 250);
+  --primary-foreground: oklch(0.12 0.02 260);
+  --primary-glow: oklch(0.78 0.16 230);
+  --accent: oklch(0.7 0.18 250);
+  --accent-foreground: oklch(0.12 0.02 260);
   --ink: oklch(0.98 0 0);
 
-  --glass-bg: rgba(20,20,28,0.55);
-  --glass-border: rgba(255,255,255,0.08);
-  --glass-shadow: 0 16px 50px -10px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset;
-  --glow-yellow: 0 0 50px rgba(255,204,0,0.35);
+  --glass-bg: rgba(18,28,55,0.55);
+  --glass-border: rgba(140,180,255,0.14);
+  --glass-shadow: 0 16px 50px -10px rgba(0,10,40,0.7), 0 0 0 1px rgba(140,180,255,0.06) inset;
+  --glow-yellow: 0 0 60px rgba(80,150,255,0.45);
 }
 
 @layer base {
@@ -120,3 +122,16 @@
   0%,100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(1.4); }
 }
+@keyframes cart-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.35) rotate(-8deg); }
+  60% { transform: scale(0.92) rotate(4deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.animate-cart-bounce { animation: cart-bounce 0.55s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes fly-to-cart {
+  0% { transform: translate(0,0) scale(1); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: var(--fly-end, translate(120px,-260px)) scale(0.2); opacity: 0; }
+}
+.animate-fly { animation: fly-to-cart 0.7s cubic-bezier(.55,.05,.45,.95) forwards; }

@@ -86,6 +86,7 @@ function App() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [cartBounce, setCartBounce] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -100,7 +101,10 @@ function App() {
     [cart]
   );
 
-  const addToCart = (id: string) => setCart(c => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  const addToCart = (id: string) => {
+    setCart(c => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+    setCartBounce(n => n + 1);
+  };
   const decCart = (id: string) => setCart(c => {
     const next = { ...c };
     if (!next[id]) return next;
@@ -115,11 +119,11 @@ function App() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#1a1a22] via-[#0f0f15] to-[#1f1a0a] dark:from-[#0a0a10] dark:via-[#08080c] dark:to-[#15110a] py-6 px-3 md:py-10">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
       {/* Studio header */}
       <div className="mx-auto mb-8 max-w-6xl flex items-center justify-between text-white/90 px-2">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-black text-lg shadow-[0_0_30px_rgba(255,204,0,0.5)]">T</div>
+          <div className="h-10 w-10 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-black text-lg shadow-[0_0_30px_rgba(10,132,255,0.55)]">T</div>
           <div>
             <div className="font-black tracking-tight text-lg leading-none">TYPHON</div>
             <div className="text-xs text-white/50 mt-1">Heavy Equipment · iOS Prototype</div>
@@ -165,6 +169,7 @@ function App() {
               signedIn={signedIn}
               isAdmin={isAdmin}
               onSignOut={() => setSignedIn(false)}
+              cartBounce={cartBounce}
             />
 
             {/* Floating AI button (not on AI tab) */}
@@ -252,13 +257,14 @@ function Screen(props: {
   onOpenCart: () => void; cartCount: number; setTab: (t: TabKey) => void;
   onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
   onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+  cartBounce?: number;
 }) {
   const { tab } = props;
   return (
     <div key={tab} className="h-full overflow-y-auto no-scrollbar pb-32 pt-12 animate-float-in">
       {tab === "home" && <HomeScreen {...props} />}
       {tab === "shop" && <ShopScreen {...props} />}
-      {tab === "ai" && <AIScreen />}
+      {tab === "ai" && <AIScreen onOpenProduct={props.onOpenProduct} addToCart={props.addToCart} />}
       {tab === "orders" && <OrdersScreen />}
       {tab === "account" && <AccountScreen {...props} />}
     </div>
@@ -269,7 +275,7 @@ function Screen(props: {
 function HomeScreen(props: {
   onOpenProduct: (p: Product) => void; onOpenCart: () => void; cartCount: number;
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
-  onOpenNotifs?: () => void; setTab?: (t: TabKey) => void;
+  onOpenNotifs?: () => void; setTab?: (t: TabKey) => void; cartBounce?: number;
 }) {
   return (
     <div className="space-y-5">
@@ -284,12 +290,14 @@ function HomeScreen(props: {
             <IconBtn><Bell className="h-4 w-4" /><Dot /></IconBtn>
           </button>
           <button onClick={props.onOpenCart} className="relative">
-            <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
+            <span key={props.cartBounce ?? 0} className={props.cartBounce ? "inline-block animate-cart-bounce" : "inline-block"}>
+              <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
+            </span>
             {props.cartCount > 0 && (
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
           </button>
-          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
+          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
         </div>
       </div>
 
@@ -493,28 +501,87 @@ function ShopScreen(props: {
 }
 
 /* ===================== AI ===================== */
-function AIScreen() {
-  const [msgs, setMsgs] = useState([
-    { role: "ai", text: "Hi John — I'm your Typhon equipment expert. What are you trying to get done?" },
+type AIMsg = {
+  role: "ai" | "user";
+  text: string;
+  products?: Product[];
+};
+
+const TYPHON_KB = [
+  { q: ["shipping", "delivery", "ship"], a: "Typhon ships free across the continental US on most machines. Standard delivery is 5–9 business days; expedited freight available at checkout. Track every order live from the Orders tab." },
+  { q: ["finance", "financing", "loan", "lease"], a: "We offer financing on machines marked 'Financing'. Terms from 24–72 months, rates from 6.9% APR with approved credit. Open any product and tap 'Finance' to estimate monthly payments." },
+  { q: ["warranty", "guarantee"], a: "Every Typhon machine comes with a 2-year limited powertrain warranty and 1 year bumper-to-bumper. Extended coverage to 5 years is available at checkout." },
+  { q: ["return", "refund"], a: "30-day return window on attachments and parts. Machines: inspection period of 7 days from delivery — contact support for an RMA." },
+  { q: ["payment", "pay", "stripe", "card"], a: "We accept all major cards via Stripe, ACH bank transfer, and Typhon financing. Apple Pay and Google Pay supported in checkout." },
+  { q: ["contact", "support", "help", "phone"], a: "Reach Typhon Support 24/7 in-app via the AI chat, or call +1 (800) TYPHON-1. Average response time: under 2 minutes." },
+  { q: ["account", "login", "sign"], a: "Sign in with Email, Phone, Google, or Apple from the Account tab. Your cart, orders and quotes sync across devices." },
+  { q: ["coupon", "discount", "promo"], a: "Tap the Coupons icon on Home to claim active promotions like SUMMER15 (15% off Compactors) and FLEET10 (10% off fleet orders $50k+)." },
+];
+
+function aiAnswer(query: string, products: Product[]): AIMsg {
+  const q = query.toLowerCase().trim();
+  // 1) knowledge base hit
+  const kb = TYPHON_KB.find(k => k.q.some(kw => q.includes(kw)));
+  if (kb && !/\b(find|show|search|recommend|looking|need|want|excavator|skid|loader|forklift|lift|bucket|attachment)\b/.test(q)) {
+    return { role: "ai", text: kb.a };
+  }
+  // 2) product search — score by name/brand/category keywords
+  const tokens = q.split(/\s+/).filter(t => t.length >= 2 && !["the","a","an","for","me","please","find","show","search","i","need","want","my","is","best","good","with"].includes(t));
+  const scored = products.map(p => {
+    const hay = `${p.name} ${p.brand} ${p.badge ?? ""}`.toLowerCase();
+    const score = tokens.reduce((s, t) => s + (hay.includes(t) ? 1 : 0), 0);
+    return { p, score };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 4).map(x => x.p);
+
+  if (scored.length) {
+    return {
+      role: "ai",
+      text: `I found ${scored.length} Typhon ${scored.length === 1 ? "machine" : "machines"} matching “${query}”. Tap any card to view full specs, financing or add to cart.`,
+      products: scored,
+    };
+  }
+  // 3) fallback — recommend top sellers
+  return {
+    role: "ai",
+    text: "I couldn't find an exact match, but here are 3 popular Typhon machines our crews love. Tell me your job site size, budget, or terrain and I'll narrow it down.",
+    products: products.slice(0, 3),
+  };
+}
+
+function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: string) => void }) {
+  const [msgs, setMsgs] = useState<AIMsg[]>([
+    { role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'." },
   ]);
   const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
   const prompts = [
-    "Which mini excavator is best for landscaping?",
-    "Compare TX-35 vs SK-260",
-    "Estimate shipping to 75201",
-    "Track my order #84219",
+    "Find me a mini excavator",
+    "Show all skid steers",
+    "Shipping to 75201?",
+    "Financing options",
+    "Best for landscaping",
   ];
+
   const send = (t?: string) => {
-    const text = (t ?? input).trim(); if (!text) return;
-    setMsgs(m => [...m, { role: "user", text }, { role: "ai", text: "For landscaping under 2 acres I'd recommend the TX-35 Mini Excavator — compact, 24 HP, and ships free in Texas. Want a finance quote?" }]);
+    const text = (t ?? input).trim();
+    if (!text) return;
+    setMsgs(m => [...m, { role: "user", text }]);
     setInput("");
+    setTyping(true);
+    setTimeout(() => {
+      setMsgs(m => [...m, aiAnswer(text, PRODUCTS)]);
+      setTyping(false);
+    }, 550);
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 pb-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">Online · Equipment Expert</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" style={{ animation: "pulse-dot 1.6s infinite" }} />
+            Online · Equipment Expert
+          </p>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" /> Typhon AI
           </h1>
@@ -524,27 +591,57 @@ function AIScreen() {
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-5 space-y-3">
         {msgs.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-              m.role === "user"
-                ? "bg-primary text-primary-foreground rounded-br-sm"
-                : "glass rounded-bl-sm"
-            }`}>
-              {m.text}
+          <div key={i} className="space-y-2">
+            <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground rounded-br-sm"
+                  : "glass rounded-bl-sm"
+              }`}>
+                {m.text}
+              </div>
             </div>
+            {m.products && m.products.length > 0 && (
+              <div className="space-y-2">
+                {m.products.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => props.onOpenProduct(p)}
+                    className="w-full text-left glass rounded-2xl p-3 flex gap-3 items-center hover:bg-primary/5 transition-colors"
+                  >
+                    <img src={p.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{p.brand}</p>
+                      <p className="font-bold text-sm truncate">{p.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-primary font-black">{p.price ? fmt(p.price) : "Request Quote"}</p>
+                        <span className="text-[10px] text-muted-foreground">★ {p.rating}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1">View</span>
+                      {p.price && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); props.addToCart(p.id); }}
+                          className="rounded-full glass-strong text-[10px] font-bold px-2.5 py-1 text-center"
+                        >
+                          + Cart
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
-
-        {/* Recommendation card in chat */}
-        {msgs.length > 1 && (
-          <div className="glass rounded-2xl p-3 flex gap-3 items-center">
-            <img src={excavator} alt="" className="h-16 w-16 rounded-xl object-cover" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Recommended</p>
-              <p className="font-bold text-sm">TX-35 Mini Excavator</p>
-              <p className="text-xs text-primary font-bold">{fmt(38500)}</p>
+        {typing && (
+          <div className="flex justify-start">
+            <div className="glass rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animation: "pulse-dot 1s infinite" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animation: "pulse-dot 1s infinite 0.2s" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animation: "pulse-dot 1s infinite 0.4s" }} />
             </div>
-            <button className="rounded-full bg-primary text-primary-foreground text-[11px] font-bold px-3 py-1.5">View</button>
           </div>
         )}
       </div>
@@ -552,7 +649,7 @@ function AIScreen() {
       {/* Suggested prompts */}
       <div className="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar">
         {prompts.map(p => (
-          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground">
+          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
             {p}
           </button>
         ))}
@@ -563,13 +660,16 @@ function AIScreen() {
           <input
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Message Typhon AI..."
+            placeholder="Ask anything — products, shipping, financing..."
             className="flex-1 bg-transparent text-sm outline-none py-1.5"
           />
           <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center">
             <Send className="h-4 w-4" />
           </button>
         </div>
+        <p className="text-[10px] text-muted-foreground text-center mt-2">
+          Works offline with built-in knowledge · Connect OpenAI key in Admin for GPT-4 mode
+        </p>
       </div>
     </div>
   );
@@ -669,7 +769,7 @@ function AccountScreen(props: {
       <div className="px-5">
         {props.signedIn ? (
           <div className="glass rounded-3xl p-4 flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
                 <p className="font-black">John Miller</p>
@@ -740,7 +840,7 @@ function BottomNav({ tab, setTab, cartCount }: { tab: TabKey; setTab: (t: TabKey
           return (
             <button key={key} onClick={() => setTab(key)}
               className={`relative flex-1 flex flex-col items-center gap-0.5 py-2 rounded-[26px] transition-all duration-300 ${
-                active ? "bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(255,204,0,0.45)]" : "text-muted-foreground"
+                active ? "bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(10,132,255,0.5)]" : "text-muted-foreground"
               }`}>
               <div className="relative">
                 <Icon className={`h-5 w-5 ${active ? "" : ""}`} strokeWidth={active ? 2.5 : 2} />
