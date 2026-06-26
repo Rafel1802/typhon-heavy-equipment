@@ -253,6 +253,7 @@ function App() {
       {showCoupons && <CouponsScreen onClose={() => setShowCoupons(false)} />}
       {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
       {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
+      {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} onSignOut={() => { setSignedIn(false); setShowSettings(false); }} />}
     </div>
   );
 }
