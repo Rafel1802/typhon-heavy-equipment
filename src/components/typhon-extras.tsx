@@ -759,3 +759,83 @@ export function NotificationsSheet({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
+
+/* ============================================================
+   SETTINGS SCREEN — Taobao-style grouped lists
+============================================================ */
+import { Globe, Bell as BellIcon, Lock as LockIcon, HelpCircle, FileText as FileText2, Info, ChevronRight as ChevRight, ArrowLeft } from "lucide-react";
+
+export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; onSignOut: () => void }) {
+  const groups: { title: string; rows: { icon: any; label: string; trail?: string; danger?: boolean }[] }[] = [
+    {
+      title: "Account and security",
+      rows: [
+        { icon: MapPin, label: "My addresses", trail: "2 saved" },
+        { icon: ShieldCheck, label: "Account and security", trail: "" },
+        { icon: CreditCard, label: "Payment settings", trail: "Visa •••• 3568" },
+        { icon: Globe, label: "Country / language / currency", trail: "US · EN · USD" },
+      ],
+    },
+    {
+      title: "Function",
+      rows: [
+        { icon: Sparkles, label: "General", trail: "" },
+        { icon: BellIcon, label: "Notifications", trail: "On" },
+        { icon: LockIcon, label: "Privacy", trail: "" },
+        { icon: ImageIcon, label: "Appearance", trail: "Liquid Glass" },
+      ],
+    },
+    {
+      title: "About",
+      rows: [
+        { icon: HelpCircle, label: "Help and feedback", trail: "" },
+        { icon: Info, label: "About TYPHON", trail: "v1.0.0" },
+        { icon: FileText2, label: "Legal Agreement", trail: "" },
+      ],
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-3 animate-float-in" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-[420px] bg-background rounded-[36px] border shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: "90vh" }}>
+        {/* Header */}
+        <div className="px-4 py-4 border-b flex items-center justify-between shrink-0">
+          <button onClick={onClose} className="h-9 w-9 rounded-full bg-muted grid place-items-center">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <h2 className="font-black text-lg">Settings</h2>
+          <button className="h-9 w-9 rounded-full bg-muted grid place-items-center text-xs">···</button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto no-scrollbar px-3 py-4 space-y-4 bg-muted/30">
+          {groups.map(g => (
+            <div key={g.title}>
+              <p className="text-[11px] font-black tracking-wide text-muted-foreground uppercase px-3 mb-2">{g.title}</p>
+              <div className="bg-card border rounded-2xl overflow-hidden divide-y">
+                {g.rows.map(r => (
+                  <button key={r.label} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted transition-colors">
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 grid place-items-center text-primary">
+                      <r.icon className="h-4 w-4" />
+                    </div>
+                    <span className="flex-1 text-left text-sm font-semibold">{r.label}</span>
+                    {r.trail && <span className="text-xs text-muted-foreground max-w-[40%] truncate">{r.trail}</span>}
+                    <ChevRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="h-2" />
+        </div>
+
+        {/* Footer actions */}
+        <div className="p-4 border-t flex gap-2 shrink-0 bg-background">
+          <button className="flex-1 rounded-2xl bg-muted text-foreground font-bold py-3 text-sm">Switch account</button>
+          <button onClick={onSignOut} className="flex-1 rounded-2xl bg-error/10 text-error font-black py-3 text-sm">Log out</button>
+        </div>
+      </div>
+    </div>
+  );
+}
