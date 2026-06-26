@@ -288,7 +288,9 @@ function HomeScreen(props: {
             <IconBtn><Bell className="h-4 w-4" /><Dot /></IconBtn>
           </button>
           <button onClick={props.onOpenCart} className="relative">
-            <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
+            <span key={props.cartBounce ?? 0} className={props.cartBounce ? "inline-block animate-cart-bounce" : "inline-block"}>
+              <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
+            </span>
             {props.cartCount > 0 && (
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
