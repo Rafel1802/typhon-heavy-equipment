@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0B0B0F",
-  "theme_color": "#FFCC00",
+  "theme_color": "#0A84FF",
   "categories": ["shopping", "business"],
   "icons": [
     { "src": "/favicon.ico", "sizes": "any", "type": "image/x-icon" }
