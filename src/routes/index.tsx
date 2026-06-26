@@ -471,24 +471,28 @@ function HomeScreen(props: {
 function ShopScreen(props: {
   onOpenProduct: (p: Product) => void;
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
+  categoryFilter?: string | null;
+  setCategoryFilter?: (c: string | null) => void;
 }) {
-  const tabs = ["All", "Equipment", "Attachments", "Parts", "Deals", "Used"];
-  const [active, setActive] = useState("All");
+  const cats = ["All", ...CATEGORIES.map(c => c.name)];
+  const active = props.categoryFilter ?? "All";
+  const setActive = (c: string) => props.setCategoryFilter?.(c === "All" ? null : c);
+  const filtered = active === "All" ? PRODUCTS : PRODUCTS.filter(p => p.category === active);
   return (
     <div className="space-y-4">
       <div className="px-5">
         <h1 className="text-2xl font-black tracking-tight">Shop</h1>
-        <p className="text-xs text-muted-foreground">2,419 products available</p>
+        <p className="text-xs text-muted-foreground">{filtered.length} of {PRODUCTS.length} products{active !== "All" ? ` · ${active}` : ""}</p>
       </div>
       <div className="px-5">
         <div className="glass rounded-2xl flex items-center gap-2 px-4 py-3">
           <Search className="h-4 w-4 text-muted-foreground" />
-          <input placeholder="Search 2,419 products..." className="flex-1 bg-transparent text-sm outline-none" />
+          <input placeholder={`Search ${active === "All" ? "all" : active}...`} className="flex-1 bg-transparent text-sm outline-none" />
           <Filter className="h-4 w-4" />
         </div>
       </div>
       <div className="flex gap-2 overflow-x-auto no-scrollbar px-5">
-        {tabs.map(t => (
+        {cats.map(t => (
           <button key={t} onClick={() => setActive(t)}
             className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold border transition-all ${
               active === t ? "bg-primary text-primary-foreground border-primary" : "bg-card text-muted-foreground"
@@ -504,19 +508,28 @@ function ShopScreen(props: {
         </button>
       </div>
 
-      <div className="px-5 grid grid-cols-2 gap-3">
-        {PRODUCTS.map(p => (
-          <ProductCard key={p.id} p={p}
-            onClick={() => props.onOpenProduct(p)}
-            fav={props.favs.has(p.id)}
-            onFav={() => props.toggleFav(p.id)}
-            onAdd={() => props.addToCart(p.id)}
-          />
-        ))}
-      </div>
+      {filtered.length === 0 ? (
+        <div className="px-5 py-12 text-center">
+          <div className="h-16 w-16 mx-auto rounded-2xl bg-muted grid place-items-center text-2xl">🔍</div>
+          <p className="mt-3 font-bold text-sm">No products in {active}</p>
+          <button onClick={() => setActive("All")} className="mt-3 text-xs text-primary font-bold">Show all products</button>
+        </div>
+      ) : (
+        <div className="px-5 grid grid-cols-2 gap-3">
+          {filtered.map(p => (
+            <ProductCard key={p.id} p={p}
+              onClick={() => props.onOpenProduct(p)}
+              fav={props.favs.has(p.id)}
+              onFav={() => props.toggleFav(p.id)}
+              onAdd={() => props.addToCart(p.id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+
 
 /* ===================== AI ===================== */
 type AIMsg = {
