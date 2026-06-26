@@ -80,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "TYPHON — Heavy Equipment Marketplace" },
       { name: "description", content: "Premium iOS-style mobile commerce for heavy construction machinery, attachments and parts across the United States." },
       { name: "author", content: "TYPHON" },
-      { name: "theme-color", content: "#FFCC00" },
+      { name: "theme-color", content: "#0A84FF" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "TYPHON" },
