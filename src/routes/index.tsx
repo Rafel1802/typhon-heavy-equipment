@@ -47,15 +47,18 @@ type Product = {
   reviews: number;
   stock: "In Stock" | "Low Stock" | "Pre-order";
   financing?: boolean;
+  category: string;
 };
 
 const PRODUCTS: Product[] = [
-  { id: "p1", name: "TX-35 Mini Excavator", brand: "Typhon Pro", price: 38500, image: excavator, badge: "Best Seller", rating: 4.9, reviews: 142, stock: "In Stock", financing: true },
-  { id: "p2", name: "SK-260 Skid Steer Loader", brand: "Typhon Pro", price: 42900, image: skidsteer, badge: "New", rating: 4.8, reviews: 88, stock: "In Stock", financing: true },
-  { id: "p3", name: "WL-50 Wheel Loader", brand: "Typhon Heavy", price: 78400, image: wheelloader, badge: "Financing", rating: 4.7, reviews: 64, stock: "Low Stock", financing: true },
-  { id: "p4", name: "FL-30 Diesel Forklift", brand: "Typhon Lift", price: 21500, image: forklift, badge: "Sale", rating: 4.6, reviews: 211, stock: "In Stock" },
-  { id: "p5", name: 'Heavy-Duty 48" Bucket', brand: "Typhon Attach", price: 2890, image: attachment, badge: "In Stock", rating: 4.9, reviews: 73, stock: "In Stock" },
-  { id: "p6", name: "SL-26 Electric Scissor Lift", brand: "Typhon Aerial", price: null, image: scissorlift, badge: "Quote", rating: 4.8, reviews: 39, stock: "Pre-order", financing: true },
+  { id: "p1", name: "TX-35 Mini Excavator", brand: "Typhon Pro", price: 38500, image: excavator, badge: "Best Seller", rating: 4.9, reviews: 142, stock: "In Stock", financing: true, category: "Mini Excavator" },
+  { id: "p2", name: "SK-260 Skid Steer Loader", brand: "Typhon Pro", price: 42900, image: skidsteer, badge: "New", rating: 4.8, reviews: 88, stock: "In Stock", financing: true, category: "Skid Steer" },
+  { id: "p3", name: "WL-50 Wheel Loader", brand: "Typhon Heavy", price: 78400, image: wheelloader, badge: "Financing", rating: 4.7, reviews: 64, stock: "Low Stock", financing: true, category: "Wheel Loader" },
+  { id: "p4", name: "FL-30 Diesel Forklift", brand: "Typhon Lift", price: 21500, image: forklift, badge: "Sale", rating: 4.6, reviews: 211, stock: "In Stock", category: "Forklift" },
+  { id: "p5", name: 'Heavy-Duty 48" Bucket', brand: "Typhon Attach", price: 2890, image: attachment, badge: "In Stock", rating: 4.9, reviews: 73, stock: "In Stock", category: "Attachments" },
+  { id: "p6", name: "SL-26 Electric Scissor Lift", brand: "Typhon Aerial", price: null, image: scissorlift, badge: "Quote", rating: 4.8, reviews: 39, stock: "Pre-order", financing: true, category: "Scissor Lift" },
+  { id: "p7", name: "RR-12 Tandem Road Roller", brand: "Typhon Heavy", price: 56800, image: wheelloader, badge: "New", rating: 4.7, reviews: 28, stock: "In Stock", financing: true, category: "Road Roller" },
+  { id: "p8", name: "Hydraulic Quick Coupler", brand: "Typhon Parts", price: 1290, image: attachment, rating: 4.8, reviews: 54, stock: "In Stock", category: "Parts" },
 ];
 
 const CATEGORIES = [
