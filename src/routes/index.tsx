@@ -273,7 +273,7 @@ function Screen(props: {
 function HomeScreen(props: {
   onOpenProduct: (p: Product) => void; onOpenCart: () => void; cartCount: number;
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
-  onOpenNotifs?: () => void; setTab?: (t: TabKey) => void;
+  onOpenNotifs?: () => void; setTab?: (t: TabKey) => void; cartBounce?: number;
 }) {
   return (
     <div className="space-y-5">
