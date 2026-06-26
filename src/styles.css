@@ -38,19 +38,20 @@
   --muted: oklch(0.96 0.004 270);
   --muted-foreground: oklch(0.55 0.01 270);
   --border: oklch(0.92 0.005 270);
-  --primary: oklch(0.86 0.18 95);          /* #FFCC00 */
-  --primary-foreground: oklch(0.15 0 0);
-  --accent: oklch(0.15 0.005 270);
+  --primary: oklch(0.62 0.19 256);          /* #0A84FF iOS blue */
+  --primary-foreground: oklch(1 0 0);
+  --primary-glow: oklch(0.72 0.17 235);
+  --accent: oklch(0.55 0.22 264);
   --accent-foreground: oklch(1 0 0);
-  --ink: oklch(0.12 0 0);
+  --ink: oklch(0.12 0.02 260);
   --success: oklch(0.72 0.17 152);
   --warning: oklch(0.78 0.16 70);
   --error: oklch(0.65 0.22 27);
 
-  --glass-bg: rgba(255,255,255,0.62);
+  --glass-bg: rgba(240,247,255,0.55);
   --glass-border: rgba(255,255,255,0.7);
-  --glass-shadow: 0 12px 40px -10px rgba(15,15,25,0.18), 0 2px 8px rgba(15,15,25,0.06);
-  --glow-yellow: 0 0 40px rgba(255,204,0,0.45);
+  --glass-shadow: 0 12px 40px -10px rgba(10,40,90,0.22), 0 2px 8px rgba(10,40,90,0.08);
+  --glow-yellow: 0 0 48px rgba(10,132,255,0.55);
 }
 
 .dark {
