@@ -708,50 +708,100 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
 
 /* ===================== ORDERS ===================== */
 function OrdersScreen() {
-  const orders = [
-    { id: "84219", name: "TX-35 Mini Excavator", price: 38500, image: excavator, status: "In Transit", step: 5 },
-    { id: "84102", name: "SK-260 Skid Steer", price: 42900, image: skidsteer, status: "Delivered", step: 9 },
-    { id: "83992", name: '48" Bucket Attachment', price: 2890, image: attachment, status: "Preparing", step: 3 },
+  type Status = "To pay" | "To ship" | "To receive" | "To review" | "Refunds" | "Delivered";
+  const orders: { id: string; name: string; price: number; image: string; status: Status; step: number; qty: number }[] = [
+    { id: "84219", name: "TX-35 Mini Excavator", price: 38500, image: excavator, status: "To receive", step: 5, qty: 1 },
+    { id: "84102", name: "SK-260 Skid Steer Loader", price: 42900, image: skidsteer, status: "Delivered", step: 9, qty: 1 },
+    { id: "83992", name: '48" Heavy-Duty Bucket', price: 2890, image: attachment, status: "To ship", step: 3, qty: 2 },
+    { id: "83880", name: "FL-30 Diesel Forklift", price: 21500, image: forklift, status: "To pay", step: 0, qty: 1 },
+    { id: "83712", name: "WL-50 Wheel Loader", price: 78400, image: wheelloader, status: "To review", step: 9, qty: 1 },
   ];
+  const tabs: ("All" | Status)[] = ["All", "To pay", "To ship", "To receive", "To review", "Refunds"];
+  const [active, setActive] = useState<typeof tabs[number]>("All");
+  const filtered = active === "All" ? orders : orders.filter(o => o.status === active);
+
+  const statusStyle = (s: Status) =>
+    s === "Delivered" ? "bg-success/15 text-success" :
+    s === "To pay" ? "bg-error/15 text-error" :
+    s === "To ship" ? "bg-warning/15 text-warning" :
+    s === "To receive" ? "bg-primary/20 text-primary" :
+    s === "To review" ? "bg-foreground/10 text-foreground" :
+    "bg-muted text-muted-foreground";
+
+  const primaryAction = (s: Status) =>
+    s === "To pay" ? "Pay now" :
+    s === "To ship" ? "Remind seller" :
+    s === "To receive" ? "Track" :
+    s === "To review" ? "Review" :
+    s === "Refunds" ? "View status" : "Buy again";
+
   return (
     <div className="space-y-4">
-      <div className="px-5">
-        <h1 className="text-2xl font-black tracking-tight">My Orders</h1>
-        <p className="text-xs text-muted-foreground">3 active · 12 completed</p>
+      <div className="px-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight">My Orders</h1>
+          <p className="text-xs text-muted-foreground">{orders.length} total · {orders.filter(o=>o.status!=="Delivered").length} active</p>
+        </div>
+        <button className="glass rounded-full h-10 w-10 grid place-items-center"><Search className="h-4 w-4" /></button>
       </div>
-      <div className="px-5 flex gap-2">
-        {["Active", "Past", "Quotes"].map((t, i) => (
-          <button key={t} className={`flex-1 rounded-2xl py-2.5 text-xs font-bold ${i === 0 ? "bg-primary text-primary-foreground" : "glass"}`}>{t}</button>
+
+      <div className="flex gap-2 overflow-x-auto no-scrollbar px-5">
+        {tabs.map(t => (
+          <button key={t} onClick={() => setActive(t)}
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold border transition-all ${
+              active === t ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_20px_rgba(10,132,255,0.4)]" : "bg-card text-muted-foreground border-transparent"
+            }`}>{t}</button>
         ))}
       </div>
 
-      <div className="px-5 space-y-3">
-        {orders.map(o => (
-          <div key={o.id} className="glass rounded-2xl p-3 space-y-3">
-            <div className="flex items-center gap-3">
-              <img src={o.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
-              <div className="flex-1">
-                <p className="text-[10px] text-muted-foreground">Order #{o.id}</p>
-                <p className="font-bold text-sm leading-tight">{o.name}</p>
-                <p className="text-xs text-primary font-bold mt-0.5">{fmt(o.price)}</p>
-              </div>
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                o.status === "Delivered" ? "bg-success/15 text-success" :
-                o.status === "In Transit" ? "bg-primary/20 text-foreground" : "bg-warning/15 text-warning"
-              }`}>{o.status}</span>
-            </div>
-
-            <Timeline step={o.step} />
-
-            <div className="flex gap-2">
-              <button className="flex-1 rounded-xl bg-foreground text-background text-xs font-bold py-2">Track</button>
-              <button className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
-                <MessageCircle className="h-3 w-3" /> Support
-              </button>
-            </div>
+      {filtered.length === 0 ? (
+        <div className="px-5 py-16 text-center">
+          <div className="h-20 w-20 mx-auto rounded-3xl bg-muted grid place-items-center">
+            <Package className="h-8 w-8 text-muted-foreground" />
           </div>
-        ))}
-      </div>
+          <p className="mt-4 font-bold">No {active.toLowerCase()} orders</p>
+          <p className="text-xs text-muted-foreground mt-1">When you have orders here, they'll show up.</p>
+        </div>
+      ) : (
+        <div className="px-5 space-y-3">
+          {filtered.map(o => (
+            <div key={o.id} className="glass rounded-2xl p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Store className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <p className="text-xs font-bold truncate">Typhon Official Store</p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyle(o.status)}`}>{o.status}</span>
+              </div>
+
+              <div className="flex gap-3">
+                <img src={o.image} alt="" className="h-20 w-20 rounded-xl object-cover" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm leading-tight line-clamp-2">{o.name}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Order #{o.id} · Qty {o.qty}</p>
+                  <p className="text-sm font-black text-primary mt-1">{fmt(o.price * o.qty)}</p>
+                </div>
+              </div>
+
+              {o.status !== "To pay" && o.status !== "Delivered" && <Timeline step={o.step} />}
+
+              <div className="flex gap-2">
+                <button className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
+                  <MessageCircle className="h-3 w-3" /> Support
+                </button>
+                {o.status === "Delivered" && (
+                  <button className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
+                    <RotateCcw className="h-3 w-3" /> Return
+                  </button>
+                )}
+                <button className={`flex-[1.4] rounded-xl text-xs font-black py-2 ${
+                  o.status === "To pay" ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
+                }`}>{primaryAction(o.status)}</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -759,7 +809,7 @@ function OrdersScreen() {
 function Timeline({ step }: { step: number }) {
   const stages = ["Received", "Paid", "Prep", "Ready", "Transit", "Port", "Customs", "Out", "Done"];
   return (
-    <div className="relative">
+    <div className="relative pb-1">
       <div className="absolute top-2 left-2 right-2 h-0.5 bg-border" />
       <div className="absolute top-2 left-2 h-0.5 bg-primary transition-all" style={{ width: `calc((100% - 16px) * ${step / (stages.length - 1)})` }} />
       <div className="relative flex justify-between">
@@ -774,82 +824,176 @@ function Timeline({ step }: { step: number }) {
   );
 }
 
-/* ===================== ACCOUNT ===================== */
+/* ===================== ACCOUNT (Taobao-style) ===================== */
 function AccountScreen(props: {
   onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
-  onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+  onOpenNotifs: () => void; onOpenSettings: () => void;
+  signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+  setTab?: (t: TabKey) => void;
+  onOpenProduct?: (p: Product) => void;
 }) {
-  const items = [
-    { icon: Heart, label: "Favorites", count: 12, onClick: () => {} },
-    { icon: Tag, label: "My Coupons", count: 4, onClick: props.onOpenCoupons },
-    { icon: FileText, label: "My Quotes", count: 3, onClick: () => {} },
-    { icon: MapPin, label: "Addresses", count: 2, onClick: () => {} },
-    { icon: Bell, label: "Notifications", onClick: props.onOpenNotifs },
-    { icon: BadgeCheck, label: "Verified Business", onClick: () => {} },
-    ...(props.isAdmin ? [{ icon: Shield, label: "Admin Dashboard", onClick: props.onOpenAdmin }] : []),
-    { icon: Settings, label: "Settings", onClick: () => {} },
-    { icon: Headphones, label: "Help & Support", onClick: () => {} },
-    { icon: LogOut, label: props.signedIn ? "Sign Out" : "Sign In", danger: props.signedIn, onClick: props.signedIn ? props.onSignOut : props.onOpenAuth },
+  const quickLinks = [
+    { icon: Tag, label: "Vouchers", onClick: props.onOpenCoupons },
+    { icon: Heart, label: "Wishlist", onClick: () => {} },
+    { icon: Store, label: "Following", onClick: () => {} },
+    { icon: Clock, label: "History", onClick: () => {} },
+    { icon: Wallet, label: "Wallet", onClick: () => {} },
   ];
+  const orderActions = [
+    { icon: CreditCard, label: "To pay", count: 1 },
+    { icon: Package, label: "To ship", count: 2 },
+    { icon: Truck, label: "To receive", count: 1 },
+    { icon: Star, label: "To review", count: 1 },
+    { icon: RotateCcw, label: "Refunds", count: 0 },
+  ];
+
   return (
-    <div className="space-y-5">
-      <div className="px-5">
-        <h1 className="text-2xl font-black tracking-tight">Account</h1>
+    <div className="pb-6">
+      {/* Gradient hero header */}
+      <div className="relative -mt-12 pt-16 pb-20 px-5 bg-gradient-to-br from-primary via-blue-600 to-blue-800 text-white overflow-hidden">
+        <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute bottom-0 left-1/2 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            {props.signedIn ? (
+              <>
+                <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur grid place-items-center font-black text-lg shrink-0 border-2 border-white/40">JM</div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-black text-lg truncate">John Miller</p>
+                    <BadgeCheck className="h-4 w-4 shrink-0" />
+                  </div>
+                  <p className="text-[11px] opacity-80 truncate">Miller Construction Co. · Dallas, TX</p>
+                </div>
+              </>
+            ) : (
+              <button onClick={props.onOpenAuth} className="flex items-center gap-3">
+                <div className="h-14 w-14 rounded-full bg-white/20 grid place-items-center"><User className="h-6 w-6" /></div>
+                <div>
+                  <p className="font-black text-lg">Sign in</p>
+                  <p className="text-[11px] opacity-80">Track orders & save favorites</p>
+                </div>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button onClick={props.onOpenNotifs} className="h-9 w-9 rounded-full bg-white/15 grid place-items-center"><Bell className="h-4 w-4" /></button>
+            <button onClick={props.onOpenSettings} className="h-9 w-9 rounded-full bg-white/15 grid place-items-center"><Settings className="h-4 w-4" /></button>
+          </div>
+        </div>
       </div>
 
-      <div className="px-5">
-        {props.signedIn ? (
-          <div className="glass rounded-3xl p-4 flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
-            <div className="flex-1">
-              <div className="flex items-center gap-1.5">
-                <p className="font-black">John Miller</p>
-                <BadgeCheck className="h-4 w-4 text-primary" />
+      {/* Quick links — overlapping card */}
+      <div className="px-3 -mt-14 relative z-10">
+        <div className="bg-card border rounded-3xl p-3 shadow-xl">
+          <div className="grid grid-cols-5 gap-1">
+            {quickLinks.map(({ icon: Icon, label, onClick }) => (
+              <button key={label} onClick={onClick} className="flex flex-col items-center gap-1 py-2 active:scale-95 transition-transform">
+                <div className="h-10 w-10 rounded-2xl bg-primary/10 grid place-items-center">
+                  <Icon className="h-4 w-4 text-primary" strokeWidth={2.2} />
+                </div>
+                <span className="text-[10px] font-semibold">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* My orders */}
+      <div className="px-3 mt-3">
+        <div className="bg-card border rounded-3xl p-4">
+          <button onClick={() => props.setTab?.("orders")} className="w-full flex items-center justify-between mb-3">
+            <h3 className="font-black text-base">My orders</h3>
+            <span className="text-xs text-muted-foreground flex items-center gap-0.5">View all <ChevronRight className="h-3 w-3" /></span>
+          </button>
+          <div className="grid grid-cols-5 gap-1">
+            {orderActions.map(({ icon: Icon, label, count }) => (
+              <button key={label} onClick={() => props.setTab?.("orders")} className="relative flex flex-col items-center gap-1.5 py-2 active:scale-95 transition-transform">
+                <div className="relative">
+                  <Icon className="h-6 w-6 text-foreground" strokeWidth={1.6} />
+                  {count > 0 && (
+                    <span className="absolute -top-1.5 -right-2 h-4 min-w-4 px-1 rounded-full bg-error text-white text-[9px] font-bold grid place-items-center">{count}</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-medium text-center leading-tight">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Promo banner */}
+      <div className="px-3 mt-3">
+        <button onClick={props.onOpenCoupons} className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-blue-700 text-white p-4 flex items-center gap-3 text-left active:scale-[0.99] transition-transform">
+          <div className="h-12 w-12 rounded-2xl bg-white/20 grid place-items-center shrink-0">
+            <Gift className="h-6 w-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-base leading-tight">Claim daily $12 voucher</p>
+            <p className="text-[11px] opacity-85 mt-0.5">No minimum spend · expires in 24h</p>
+          </div>
+          <ArrowRight className="h-5 w-5 opacity-90" />
+        </button>
+      </div>
+
+      {/* Share & Earn */}
+      <div className="px-3 mt-3">
+        <button className="w-full bg-card border rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-xl bg-primary/10 grid place-items-center"><Receipt className="h-4 w-4 text-primary" /></div>
+          <div className="flex-1 text-left">
+            <p className="font-bold text-sm">Share & Earn</p>
+            <p className="text-[10px] text-muted-foreground">Invite friends, earn $20 credit each</p>
+          </div>
+          <span className="text-xs text-primary font-bold">Go ›</span>
+        </button>
+      </div>
+
+      {/* Account list */}
+      <div className="px-3 mt-3">
+        <div className="bg-card border rounded-3xl overflow-hidden divide-y">
+          {[
+            { icon: MapPin, label: "Addresses", trail: "2 saved", onClick: () => {} },
+            { icon: FileText, label: "My Quotes", trail: "3", onClick: () => {} },
+            { icon: BadgeCheck, label: "Verified Business", trail: "Active", onClick: () => {} },
+            ...(props.isAdmin ? [{ icon: Shield, label: "Admin Dashboard", trail: "", onClick: props.onOpenAdmin }] : []),
+            { icon: Settings, label: "Settings", trail: "", onClick: props.onOpenSettings },
+            { icon: Headphones, label: "Help & Support", trail: "24/7", onClick: () => {} },
+            { icon: Eye, label: "Recently viewed", trail: "", onClick: () => {} },
+          ].map(({ icon: Icon, label, trail, onClick }) => (
+            <button key={label} onClick={onClick} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted transition-colors">
+              <div className="h-8 w-8 rounded-xl bg-muted grid place-items-center"><Icon className="h-4 w-4" /></div>
+              <span className="flex-1 text-left text-sm font-semibold">{label}</span>
+              {trail && <span className="text-xs text-muted-foreground">{trail}</span>}
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Recommended */}
+      <div className="px-3 mt-4">
+        <h3 className="font-black text-base mb-2 px-1">Recommended for you</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {PRODUCTS.slice(0, 4).map(p => (
+            <button key={p.id} onClick={() => props.onOpenProduct?.(p)} className="bg-card border rounded-2xl overflow-hidden text-left">
+              <img src={p.image} alt="" className="aspect-square w-full object-cover" />
+              <div className="p-2">
+                <p className="text-xs font-bold line-clamp-1">{p.name}</p>
+                <p className="text-sm font-black text-primary mt-1">{p.price ? fmt(p.price) : "Quote"}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Miller Construction Co.</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Dallas, TX · Member since 2024</p>
-            </div>
-            <button className="text-xs font-bold text-primary">Edit</button>
-          </div>
-        ) : (
-          <button onClick={props.onOpenAuth} className="w-full glass rounded-3xl p-5 flex items-center gap-4 text-left">
-            <div className="h-14 w-14 rounded-2xl bg-primary grid place-items-center text-primary-foreground">
-              <User className="h-6 w-6" />
-            </div>
-            <div className="flex-1">
-              <p className="font-black">Sign in to TYPHON</p>
-              <p className="text-xs text-muted-foreground">Track orders, save favorites, get quotes</p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-        )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="px-5 grid grid-cols-3 gap-3">
-        {[
-          { label: "Orders", value: "15" },
-          { label: "Saved", value: "12" },
-          { label: "Quotes", value: "3" },
-        ].map(s => (
-          <div key={s.label} className="glass rounded-2xl p-3 text-center">
-            <p className="text-xl font-black">{s.value}</p>
-            <p className="text-[10px] text-muted-foreground font-semibold">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="px-5 space-y-1">
-        {items.map(({ icon: Icon, label, count, danger, onClick }) => (
-          <button key={label} onClick={onClick} className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-muted transition-colors">
-            <div className={`h-9 w-9 rounded-xl grid place-items-center ${danger ? "bg-error/10 text-error" : "bg-muted text-foreground"}`}>
-              <Icon className="h-4 w-4" />
-            </div>
-            <span className={`flex-1 text-left text-sm font-semibold ${danger ? "text-error" : ""}`}>{label}</span>
-            {count !== undefined && <span className="text-xs text-muted-foreground">{count}</span>}
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      {/* Sign out */}
+      {props.signedIn && (
+        <div className="px-5 mt-5">
+          <button onClick={props.onSignOut} className="w-full rounded-2xl border border-error/30 text-error font-bold py-3 text-sm flex items-center justify-center gap-2">
+            <LogOut className="h-4 w-4" /> Sign Out
           </button>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
