@@ -265,13 +265,17 @@ function Screen(props: {
   addToCart: (id: string) => void; toggleFav: (id: string) => void;
   onOpenCart: () => void; cartCount: number; setTab: (t: TabKey) => void;
   onOpenAuth: () => void; onOpenCoupons: () => void; onOpenAdmin: () => void;
-  onOpenNotifs: () => void; signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
+  onOpenNotifs: () => void; onOpenSettings: () => void;
+  signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
   cartBounce?: number;
+  categoryFilter: string | null;
+  setCategoryFilter: (c: string | null) => void;
 }) {
   const { tab } = props;
+  const openCategory = (c: string) => { props.setCategoryFilter(c); props.setTab("shop"); };
   return (
     <div key={tab} className="h-full overflow-y-auto no-scrollbar pb-32 pt-12 animate-float-in">
-      {tab === "home" && <HomeScreen {...props} />}
+      {tab === "home" && <HomeScreen {...props} openCategory={openCategory} />}
       {tab === "shop" && <ShopScreen {...props} />}
       {tab === "ai" && <AIScreen onOpenProduct={props.onOpenProduct} addToCart={props.addToCart} />}
       {tab === "orders" && <OrdersScreen />}
