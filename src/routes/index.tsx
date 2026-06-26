@@ -501,28 +501,87 @@ function ShopScreen(props: {
 }
 
 /* ===================== AI ===================== */
-function AIScreen() {
-  const [msgs, setMsgs] = useState([
-    { role: "ai", text: "Hi John — I'm your Typhon equipment expert. What are you trying to get done?" },
+type AIMsg = {
+  role: "ai" | "user";
+  text: string;
+  products?: Product[];
+};
+
+const TYPHON_KB = [
+  { q: ["shipping", "delivery", "ship"], a: "Typhon ships free across the continental US on most machines. Standard delivery is 5–9 business days; expedited freight available at checkout. Track every order live from the Orders tab." },
+  { q: ["finance", "financing", "loan", "lease"], a: "We offer financing on machines marked 'Financing'. Terms from 24–72 months, rates from 6.9% APR with approved credit. Open any product and tap 'Finance' to estimate monthly payments." },
+  { q: ["warranty", "guarantee"], a: "Every Typhon machine comes with a 2-year limited powertrain warranty and 1 year bumper-to-bumper. Extended coverage to 5 years is available at checkout." },
+  { q: ["return", "refund"], a: "30-day return window on attachments and parts. Machines: inspection period of 7 days from delivery — contact support for an RMA." },
+  { q: ["payment", "pay", "stripe", "card"], a: "We accept all major cards via Stripe, ACH bank transfer, and Typhon financing. Apple Pay and Google Pay supported in checkout." },
+  { q: ["contact", "support", "help", "phone"], a: "Reach Typhon Support 24/7 in-app via the AI chat, or call +1 (800) TYPHON-1. Average response time: under 2 minutes." },
+  { q: ["account", "login", "sign"], a: "Sign in with Email, Phone, Google, or Apple from the Account tab. Your cart, orders and quotes sync across devices." },
+  { q: ["coupon", "discount", "promo"], a: "Tap the Coupons icon on Home to claim active promotions like SUMMER15 (15% off Compactors) and FLEET10 (10% off fleet orders $50k+)." },
+];
+
+function aiAnswer(query: string, products: Product[]): AIMsg {
+  const q = query.toLowerCase().trim();
+  // 1) knowledge base hit
+  const kb = TYPHON_KB.find(k => k.q.some(kw => q.includes(kw)));
+  if (kb && !/\b(find|show|search|recommend|looking|need|want|excavator|skid|loader|forklift|lift|bucket|attachment)\b/.test(q)) {
+    return { role: "ai", text: kb.a };
+  }
+  // 2) product search — score by name/brand/category keywords
+  const tokens = q.split(/\s+/).filter(t => t.length >= 2 && !["the","a","an","for","me","please","find","show","search","i","need","want","my","is","best","good","with"].includes(t));
+  const scored = products.map(p => {
+    const hay = `${p.name} ${p.brand} ${p.badge ?? ""}`.toLowerCase();
+    const score = tokens.reduce((s, t) => s + (hay.includes(t) ? 1 : 0), 0);
+    return { p, score };
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score).slice(0, 4).map(x => x.p);
+
+  if (scored.length) {
+    return {
+      role: "ai",
+      text: `I found ${scored.length} Typhon ${scored.length === 1 ? "machine" : "machines"} matching “${query}”. Tap any card to view full specs, financing or add to cart.`,
+      products: scored,
+    };
+  }
+  // 3) fallback — recommend top sellers
+  return {
+    role: "ai",
+    text: "I couldn't find an exact match, but here are 3 popular Typhon machines our crews love. Tell me your job site size, budget, or terrain and I'll narrow it down.",
+    products: products.slice(0, 3),
+  };
+}
+
+function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: string) => void }) {
+  const [msgs, setMsgs] = useState<AIMsg[]>([
+    { role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'." },
   ]);
   const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
   const prompts = [
-    "Which mini excavator is best for landscaping?",
-    "Compare TX-35 vs SK-260",
-    "Estimate shipping to 75201",
-    "Track my order #84219",
+    "Find me a mini excavator",
+    "Show all skid steers",
+    "Shipping to 75201?",
+    "Financing options",
+    "Best for landscaping",
   ];
+
   const send = (t?: string) => {
-    const text = (t ?? input).trim(); if (!text) return;
-    setMsgs(m => [...m, { role: "user", text }, { role: "ai", text: "For landscaping under 2 acres I'd recommend the TX-35 Mini Excavator — compact, 24 HP, and ships free in Texas. Want a finance quote?" }]);
+    const text = (t ?? input).trim();
+    if (!text) return;
+    setMsgs(m => [...m, { role: "user", text }]);
     setInput("");
+    setTyping(true);
+    setTimeout(() => {
+      setMsgs(m => [...m, aiAnswer(text, PRODUCTS)]);
+      setTyping(false);
+    }, 550);
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 pb-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">Online · Equipment Expert</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" style={{ animation: "pulse-dot 1.6s infinite" }} />
+            Online · Equipment Expert
+          </p>
           <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" /> Typhon AI
           </h1>
@@ -532,27 +591,57 @@ function AIScreen() {
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-5 space-y-3">
         {msgs.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-              m.role === "user"
-                ? "bg-primary text-primary-foreground rounded-br-sm"
-                : "glass rounded-bl-sm"
-            }`}>
-              {m.text}
+          <div key={i} className="space-y-2">
+            <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground rounded-br-sm"
+                  : "glass rounded-bl-sm"
+              }`}>
+                {m.text}
+              </div>
             </div>
+            {m.products && m.products.length > 0 && (
+              <div className="space-y-2">
+                {m.products.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => props.onOpenProduct(p)}
+                    className="w-full text-left glass rounded-2xl p-3 flex gap-3 items-center hover:bg-primary/5 transition-colors"
+                  >
+                    <img src={p.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{p.brand}</p>
+                      <p className="font-bold text-sm truncate">{p.name}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-primary font-black">{p.price ? fmt(p.price) : "Request Quote"}</p>
+                        <span className="text-[10px] text-muted-foreground">★ {p.rating}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1">View</span>
+                      {p.price && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); props.addToCart(p.id); }}
+                          className="rounded-full glass-strong text-[10px] font-bold px-2.5 py-1 text-center"
+                        >
+                          + Cart
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
-
-        {/* Recommendation card in chat */}
-        {msgs.length > 1 && (
-          <div className="glass rounded-2xl p-3 flex gap-3 items-center">
-            <img src={excavator} alt="" className="h-16 w-16 rounded-xl object-cover" />
-            <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Recommended</p>
-              <p className="font-bold text-sm">TX-35 Mini Excavator</p>
-              <p className="text-xs text-primary font-bold">{fmt(38500)}</p>
+        {typing && (
+          <div className="flex justify-start">
+            <div className="glass rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animation: "pulse-dot 1s infinite" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animation: "pulse-dot 1s infinite 0.2s" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" style={{ animation: "pulse-dot 1s infinite 0.4s" }} />
             </div>
-            <button className="rounded-full bg-primary text-primary-foreground text-[11px] font-bold px-3 py-1.5">View</button>
           </div>
         )}
       </div>
@@ -560,7 +649,7 @@ function AIScreen() {
       {/* Suggested prompts */}
       <div className="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar">
         {prompts.map(p => (
-          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground">
+          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
             {p}
           </button>
         ))}
@@ -571,13 +660,16 @@ function AIScreen() {
           <input
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Message Typhon AI..."
+            placeholder="Ask anything — products, shipping, financing..."
             className="flex-1 bg-transparent text-sm outline-none py-1.5"
           />
           <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center">
             <Send className="h-4 w-4" />
           </button>
         </div>
+        <p className="text-[10px] text-muted-foreground text-center mt-2">
+          Works offline with built-in knowledge · Connect OpenAI key in Admin for GPT-4 mode
+        </p>
       </div>
     </div>
   );
