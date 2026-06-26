@@ -87,9 +87,11 @@ function App() {
   const [showCoupons, setShowCoupons] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [signedIn, setSignedIn] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartBounce, setCartBounce] = useState(0);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
