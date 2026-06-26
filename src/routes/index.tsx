@@ -115,11 +115,11 @@ function App() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#1a1a22] via-[#0f0f15] to-[#1f1a0a] dark:from-[#0a0a10] dark:via-[#08080c] dark:to-[#15110a] py-6 px-3 md:py-10">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
       {/* Studio header */}
       <div className="mx-auto mb-8 max-w-6xl flex items-center justify-between text-white/90 px-2">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-black text-lg shadow-[0_0_30px_rgba(255,204,0,0.5)]">T</div>
+          <div className="h-10 w-10 rounded-2xl bg-primary text-primary-foreground grid place-items-center font-black text-lg shadow-[0_0_30px_rgba(10,132,255,0.55)]">T</div>
           <div>
             <div className="font-black tracking-tight text-lg leading-none">TYPHON</div>
             <div className="text-xs text-white/50 mt-1">Heavy Equipment · iOS Prototype</div>
@@ -289,7 +289,7 @@ function HomeScreen(props: {
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
           </button>
-          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
+          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
         </div>
       </div>
 
@@ -669,7 +669,7 @@ function AccountScreen(props: {
       <div className="px-5">
         {props.signedIn ? (
           <div className="glass rounded-3xl p-4 flex items-center gap-4">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-yellow-600 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-black text-xl">JM</div>
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
                 <p className="font-black">John Miller</p>
@@ -740,7 +740,7 @@ function BottomNav({ tab, setTab, cartCount }: { tab: TabKey; setTab: (t: TabKey
           return (
             <button key={key} onClick={() => setTab(key)}
               className={`relative flex-1 flex flex-col items-center gap-0.5 py-2 rounded-[26px] transition-all duration-300 ${
-                active ? "bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(255,204,0,0.45)]" : "text-muted-foreground"
+                active ? "bg-primary text-primary-foreground shadow-[0_4px_20px_rgba(10,132,255,0.5)]" : "text-muted-foreground"
               }`}>
               <div className="relative">
                 <Icon className={`h-5 w-5 ${active ? "" : ""}`} strokeWidth={active ? 2.5 : 2} />
