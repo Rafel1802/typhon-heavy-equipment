@@ -19,7 +19,7 @@ import hero1 from "@/assets/hero1.jpg";
 
 import {
   AuthScreen, CheckoutFlow, OrderPlaced, CouponsScreen,
-  AdminDashboard, NotificationsSheet,
+  AdminDashboard, NotificationsSheet, SettingsScreen,
 } from "@/components/typhon-extras";
 
 export const Route = createFileRoute("/")({
