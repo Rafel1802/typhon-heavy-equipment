@@ -171,10 +171,13 @@ function App() {
               onOpenCoupons={() => setShowCoupons(true)}
               onOpenAdmin={() => setShowAdmin(true)}
               onOpenNotifs={() => setShowNotifs(true)}
+              onOpenSettings={() => setShowSettings(true)}
               signedIn={signedIn}
               isAdmin={isAdmin}
               onSignOut={() => setSignedIn(false)}
               cartBounce={cartBounce}
+              categoryFilter={categoryFilter}
+              setCategoryFilter={setCategoryFilter}
             />
 
             {/* Floating AI button (not on AI tab) */}
