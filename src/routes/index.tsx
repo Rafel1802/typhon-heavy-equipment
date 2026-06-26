@@ -886,11 +886,11 @@ function Dot() {
   return <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-error border border-background" />;
 }
 
-function SectionTitle({ title, action }: { title: string; action?: string }) {
+function SectionTitle({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="flex items-center justify-between">
       <h3 className="font-black text-base tracking-tight">{title}</h3>
-      {action && <button className="text-xs text-muted-foreground font-semibold flex items-center gap-0.5">{action} <ChevronRight className="h-3 w-3" /></button>}
+      {action && <button onClick={onAction} className="text-xs text-muted-foreground font-semibold flex items-center gap-0.5">{action} <ChevronRight className="h-3 w-3" /></button>}
     </div>
   );
 }
