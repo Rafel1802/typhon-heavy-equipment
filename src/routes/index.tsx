@@ -352,11 +352,15 @@ function HomeScreen(props: {
 
       {/* Categories */}
       <div className="px-5">
-        <SectionTitle title="Categories" action="See all" />
+        <SectionTitle title="Categories" action="See all" onAction={() => props.setTab?.("shop")} />
         <div className="grid grid-cols-4 gap-3 mt-3">
           {CATEGORIES.slice(0, 8).map(c => (
-            <button key={c.name} className="flex flex-col items-center gap-1.5">
-              <div className="h-14 w-14 rounded-2xl bg-card border grid place-items-center text-2xl shadow-sm">{c.icon}</div>
+            <button
+              key={c.name}
+              onClick={() => props.openCategory?.(c.name)}
+              className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+            >
+              <div className="h-14 w-14 rounded-2xl bg-card border grid place-items-center text-2xl shadow-sm hover:border-primary hover:shadow-[0_4px_20px_rgba(10,132,255,0.25)] transition-all">{c.icon}</div>
               <span className="text-[10px] text-muted-foreground font-medium leading-tight text-center">{c.name}</span>
             </button>
           ))}
@@ -367,15 +371,15 @@ function HomeScreen(props: {
       <div className="px-5">
         <div className="grid grid-cols-4 gap-2">
           {[
-            { icon: ShieldCheck, label: "Warranty" },
-            { icon: Truck, label: "US Ship" },
-            { icon: Banknote, label: "Finance" },
-            { icon: Headphones, label: "24/7" },
+            { icon: ShieldCheck, label: "Warranty", q: "What is your warranty?" },
+            { icon: Truck, label: "US Ship", q: "Tell me about shipping" },
+            { icon: Banknote, label: "Finance", q: "Financing options" },
+            { icon: Headphones, label: "24/7", q: "How do I contact support?" },
           ].map(({ icon: Icon, label }) => (
-            <div key={label} className="glass rounded-xl p-2 flex flex-col items-center gap-1">
+            <button key={label} onClick={() => props.setTab?.("ai")} className="glass rounded-xl p-2 flex flex-col items-center gap-1 active:scale-95 transition-transform">
               <Icon className="h-4 w-4 text-primary" />
               <span className="text-[10px] font-semibold">{label}</span>
-            </div>
+            </button>
           ))}
         </div>
       </div>
