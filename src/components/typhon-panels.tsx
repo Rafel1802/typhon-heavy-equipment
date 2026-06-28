@@ -9,7 +9,7 @@ import {
   useWishlist, type Profile,
 } from "@/lib/typhon-store";
 
-type Product = { id: string; name: string; brand: string; price: number | null; image: string; rating: number };
+type Product = { id: string; name: string; brand: string; price: number | null; image: string; rating: number; [k: string]: any };
 
 /* ---------- Reusable sheet shell ---------- */
 export function Sheet({ title, onClose, children, footer }: { title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {
