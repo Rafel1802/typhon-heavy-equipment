@@ -879,13 +879,16 @@ function AccountScreen(props: {
   signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
   setTab?: (t: TabKey) => void;
   onOpenProduct?: (p: Product) => void;
+  openPanel?: (k: PanelKey) => void;
+  profile?: { name: string; company: string; location: string; initials: string; avatar?: string; cover?: string };
 }) {
+  const op = props.openPanel ?? (() => {});
   const quickLinks = [
     { icon: Tag, label: "Vouchers", onClick: props.onOpenCoupons },
-    { icon: Heart, label: "Wishlist", onClick: () => {} },
-    { icon: Store, label: "Following", onClick: () => {} },
-    { icon: Clock, label: "History", onClick: () => {} },
-    { icon: Wallet, label: "Wallet", onClick: () => {} },
+    { icon: Heart, label: "Wishlist", onClick: () => op("wishlist") },
+    { icon: Store, label: "Following", onClick: () => op("following") },
+    { icon: Clock, label: "History", onClick: () => op("history") },
+    { icon: Wallet, label: "Wallet", onClick: () => op("wallet") },
   ];
   const orderActions = [
     { icon: CreditCard, label: "To pay", count: 1 },
@@ -894,6 +897,7 @@ function AccountScreen(props: {
     { icon: Star, label: "To review", count: 1 },
     { icon: RotateCcw, label: "Refunds", count: 0 },
   ];
+
 
   return (
     <div className="pb-6">
