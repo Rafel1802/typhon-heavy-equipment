@@ -283,6 +283,18 @@ function App() {
       {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
       {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} onSignOut={() => { setSignedIn(false); setShowSettings(false); }} />}
+
+      {/* Wired sub-screens */}
+      {panel === "profile" && <ProfileEditSheet onClose={() => setPanel(null)} />}
+      {panel === "help" && <HelpSupportSheet onClose={() => setPanel(null)} />}
+      {panel === "share" && <ShareEarnSheet onClose={() => setPanel(null)} />}
+      {panel === "wishlist" && <WishlistSheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { setPanel(null); openProduct(p); }} />}
+      {panel === "following" && <FollowingSheet onClose={() => setPanel(null)} />}
+      {panel === "history" && <HistorySheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { setPanel(null); openProduct(p); }} />}
+      {panel === "wallet" && <WalletSheet onClose={() => setPanel(null)} />}
+      {panel === "addresses" && <AddressesSheet onClose={() => setPanel(null)} />}
+      {panel === "quotes" && <QuotesSheet onClose={() => setPanel(null)} />}
+      {panel === "verified" && <VerifiedSheet onClose={() => setPanel(null)} />}
     </div>
   );
 }
