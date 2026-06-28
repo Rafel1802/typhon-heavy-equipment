@@ -288,9 +288,9 @@ function App() {
       {panel === "profile" && <ProfileEditSheet onClose={() => setPanel(null)} />}
       {panel === "help" && <HelpSupportSheet onClose={() => setPanel(null)} />}
       {panel === "share" && <ShareEarnSheet onClose={() => setPanel(null)} />}
-      {panel === "wishlist" && <WishlistSheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { setPanel(null); openProduct(p); }} />}
+      {panel === "wishlist" && <WishlistSheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { const full = PRODUCTS.find(x => x.id === p.id); if (full) { setPanel(null); openProduct(full); } }} />}
       {panel === "following" && <FollowingSheet onClose={() => setPanel(null)} />}
-      {panel === "history" && <HistorySheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { setPanel(null); openProduct(p); }} />}
+      {panel === "history" && <HistorySheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { const full = PRODUCTS.find(x => x.id === p.id); if (full) { setPanel(null); openProduct(full); } }} />}
       {panel === "wallet" && <WalletSheet onClose={() => setPanel(null)} />}
       {panel === "addresses" && <AddressesSheet onClose={() => setPanel(null)} />}
       {panel === "quotes" && <QuotesSheet onClose={() => setPanel(null)} />}
