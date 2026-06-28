@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Store, Sparkles, Package, User, Search, Bell, ShoppingCart,
   Mic, SlidersHorizontal, Heart, Star, ChevronRight, ChevronLeft,
@@ -21,6 +21,14 @@ import {
   AuthScreen, CheckoutFlow, OrderPlaced, CouponsScreen,
   AdminDashboard, NotificationsSheet, SettingsScreen,
 } from "@/components/typhon-extras";
+import {
+  ProfileEditSheet, HelpSupportSheet, ShareEarnSheet, WishlistSheet,
+  FollowingSheet, HistorySheet, WalletSheet, AddressesSheet, QuotesSheet,
+  VerifiedSheet, SearchDropdown, HeroSlideshow,
+} from "@/components/typhon-panels";
+import { useBanners, useProfile, useRecentlyViewed, useWishlist, type Banner } from "@/lib/typhon-store";
+
+type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
 export const Route = createFileRoute("/")({
   head: () => ({
