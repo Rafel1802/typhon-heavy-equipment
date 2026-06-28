@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home, Store, Sparkles, Package, User, Search, Bell, ShoppingCart,
   Mic, SlidersHorizontal, Heart, Star, ChevronRight, ChevronLeft,
@@ -21,6 +21,14 @@ import {
   AuthScreen, CheckoutFlow, OrderPlaced, CouponsScreen,
   AdminDashboard, NotificationsSheet, SettingsScreen,
 } from "@/components/typhon-extras";
+import {
+  ProfileEditSheet, HelpSupportSheet, ShareEarnSheet, WishlistSheet,
+  FollowingSheet, HistorySheet, WalletSheet, AddressesSheet, QuotesSheet,
+  VerifiedSheet, SearchDropdown, HeroSlideshow,
+} from "@/components/typhon-panels";
+import { useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
+
+type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -79,7 +87,6 @@ function App() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selected, setSelected] = useState<Product | null>(null);
   const [cart, setCart] = useState<Record<string, number>>({});
-  const [favs, setFavs] = useState<Set<string>>(new Set());
   const [cartOpen, setCartOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -92,6 +99,23 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartBounce, setCartBounce] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [panel, setPanel] = useState<PanelKey>(null);
+
+  const [wishlist, setWishlist] = useWishlist();
+  const [, setRecentlyViewed] = useRecentlyViewed();
+  const [profile] = useProfile({
+    name: "John Miller", company: "Miller Construction Co.", location: "Dallas, TX",
+    initials: "JM", email: "john@millerco.com", phone: "+1 (214) 555-0142",
+  });
+  const defaultBanners: Banner[] = [
+    { id: "b1", title: "Compactors & Rollers\nUp to 15% off", subtitle: "Summer Savings", cta: "Shop Now", image: hero1, live: true },
+    { id: "b2", title: "TX-35 Mini Excavator\nNew arrival", subtitle: "Just landed", cta: "Discover", image: excavator, live: true },
+    { id: "b3", title: "WL-50 Wheel Loader\n0% APR · 12 months", subtitle: "Financing", cta: "Get pre-approved", image: wheelloader, live: true },
+  ];
+  const [banners] = useBanners(defaultBanners);
+  const liveBanners = useMemo(() => banners.filter(b => b.live), [banners]);
+
+  const favs = useMemo(() => new Set(wishlist), [wishlist]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -117,11 +141,12 @@ function App() {
     if (next[id] <= 0) delete next[id];
     return next;
   });
-  const toggleFav = (id: string) => setFavs(s => {
-    const next = new Set(s);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  const toggleFav = (id: string) => setWishlist(l => l.includes(id) ? l.filter(x => x !== id) : [...l, id]);
+
+  const openProduct = (p: Product) => {
+    setSelected(p);
+    setRecentlyViewed(prev => [p.id, ...prev.filter(x => x !== p.id)].slice(0, 20));
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
@@ -163,7 +188,7 @@ function App() {
               <span>5G</span><span>􀛨</span>
             </div>
 
-            <Screen tab={tab} theme={theme} onOpenProduct={setSelected}
+            <Screen tab={tab} theme={theme} onOpenProduct={openProduct}
               cart={cart} favs={favs} addToCart={addToCart} toggleFav={toggleFav}
               onOpenCart={() => setCartOpen(true)} cartCount={cartCount}
               setTab={setTab}
@@ -178,7 +203,11 @@ function App() {
               cartBounce={cartBounce}
               categoryFilter={categoryFilter}
               setCategoryFilter={setCategoryFilter}
+              openPanel={setPanel}
+              profile={profile}
+              banners={liveBanners}
             />
+
 
             {/* Floating AI button (not on AI tab) */}
             {tab !== "ai" && (
@@ -254,6 +283,18 @@ function App() {
       {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
       {showNotifs && <NotificationsSheet onClose={() => setShowNotifs(false)} />}
       {showSettings && <SettingsScreen onClose={() => setShowSettings(false)} onSignOut={() => { setSignedIn(false); setShowSettings(false); }} />}
+
+      {/* Wired sub-screens */}
+      {panel === "profile" && <ProfileEditSheet onClose={() => setPanel(null)} />}
+      {panel === "help" && <HelpSupportSheet onClose={() => setPanel(null)} />}
+      {panel === "share" && <ShareEarnSheet onClose={() => setPanel(null)} />}
+      {panel === "wishlist" && <WishlistSheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { const full = PRODUCTS.find(x => x.id === p.id); if (full) { setPanel(null); openProduct(full); } }} />}
+      {panel === "following" && <FollowingSheet onClose={() => setPanel(null)} />}
+      {panel === "history" && <HistorySheet onClose={() => setPanel(null)} products={PRODUCTS} onOpenProduct={(p) => { const full = PRODUCTS.find(x => x.id === p.id); if (full) { setPanel(null); openProduct(full); } }} />}
+      {panel === "wallet" && <WalletSheet onClose={() => setPanel(null)} />}
+      {panel === "addresses" && <AddressesSheet onClose={() => setPanel(null)} />}
+      {panel === "quotes" && <QuotesSheet onClose={() => setPanel(null)} />}
+      {panel === "verified" && <VerifiedSheet onClose={() => setPanel(null)} />}
     </div>
   );
 }
@@ -270,6 +311,9 @@ function Screen(props: {
   cartBounce?: number;
   categoryFilter: string | null;
   setCategoryFilter: (c: string | null) => void;
+  openPanel: (k: PanelKey) => void;
+  profile: { name: string; company: string; location: string; initials: string; avatar?: string; cover?: string };
+  banners: Banner[];
 }) {
   const { tab } = props;
   const openCategory = (c: string) => { props.setCategoryFilter(c); props.setTab("shop"); };
@@ -290,14 +334,19 @@ function HomeScreen(props: {
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
   onOpenNotifs?: () => void; setTab?: (t: TabKey) => void; cartBounce?: number;
   openCategory?: (c: string) => void;
+  profile?: { name: string; initials: string; avatar?: string };
+  banners?: Banner[];
 }) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const firstName = (props.profile?.name ?? "John Miller").split(" ")[0];
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="px-5 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">Welcome back</p>
-          <h1 className="text-xl font-black tracking-tight">Build bigger, John.</h1>
+          <h1 className="text-xl font-black tracking-tight">Build bigger, {firstName}.</h1>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={props.onOpenNotifs}>
@@ -311,44 +360,43 @@ function HomeScreen(props: {
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
           </button>
-          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
+          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm overflow-hidden">
+            {props.profile?.avatar ? <img src={props.profile.avatar} alt="" className="h-full w-full object-cover" /> : props.profile?.initials ?? "JM"}
+          </button>
         </div>
       </div>
 
       {/* Search */}
       <div className="px-5">
-        <div className="glass rounded-2xl flex items-center gap-2 px-4 py-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            placeholder="Search excavators, skid steers..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <button className="h-7 w-7 rounded-full bg-muted grid place-items-center"><Mic className="h-3.5 w-3.5" /></button>
-          <button className="h-7 w-7 rounded-full bg-primary grid place-items-center"><Sparkles className="h-3.5 w-3.5 text-primary-foreground" /></button>
+        <div className="relative">
+          <div className="glass rounded-2xl flex items-center gap-2 px-4 py-3">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={query} onChange={e => setQuery(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              placeholder="Search excavators, skid steers..."
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button className="h-7 w-7 rounded-full bg-muted grid place-items-center"><Mic className="h-3.5 w-3.5" /></button>
+            <button onClick={() => props.setTab?.("ai")} className="h-7 w-7 rounded-full bg-primary grid place-items-center"><Sparkles className="h-3.5 w-3.5 text-primary-foreground" /></button>
+          </div>
+          {focused && query && (
+            <SearchDropdown
+              query={query}
+              products={PRODUCTS}
+              onPick={(p) => { const full = PRODUCTS.find(x => x.id === p.id); if (full) props.onOpenProduct(full); setQuery(""); }}
+              onClose={() => setQuery("")}
+            />
+          )}
         </div>
       </div>
 
-      {/* Hero banner */}
+      {/* Hero slideshow */}
       <div className="px-5">
-        <div className="relative rounded-3xl overflow-hidden h-52 shadow-xl">
-          <img src={hero1} alt="Heavy machinery" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/30 to-transparent" />
-          <div className="absolute inset-0 p-5 flex flex-col justify-between text-white">
-            <span className="self-start glass-strong rounded-full px-3 py-1 text-[10px] font-bold tracking-widest">SUMMER SAVINGS</span>
-            <div>
-              <h2 className="text-2xl font-black leading-tight">Compactors & Rollers<br />Up to 15% off</h2>
-              <button className="mt-3 inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-4 py-2 text-xs font-bold">
-                Shop Now <ArrowRight className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="absolute bottom-3 right-5 flex gap-1">
-              <span className="h-1.5 w-6 rounded-full bg-white" />
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
-            </div>
-          </div>
-        </div>
+        <HeroSlideshow slides={props.banners ?? []} fallback={hero1} onShop={() => props.setTab?.("shop")} />
       </div>
+
 
       {/* Categories */}
       <div className="px-5">
@@ -580,29 +628,65 @@ function aiAnswer(query: string, products: Product[]): AIMsg {
 }
 
 function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: string) => void }) {
-  const [msgs, setMsgs] = useState<AIMsg[]>([
-    { role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'." },
-  ]);
+  const [sessions, setSessions] = useChatSessions();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Ensure a current session exists
+  useEffect(() => {
+    if (!activeId) {
+      if (sessions.length > 0) setActiveId(sessions[0].id);
+      else {
+        const id = "s" + Date.now();
+        const s: ChatSession = {
+          id, title: "New chat", createdAt: Date.now(),
+          messages: [{ role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'.", ts: Date.now() }],
+        };
+        setSessions([s]);
+        setActiveId(id);
+      }
+    }
+  }, [activeId, sessions, setSessions]);
+
+  const current = sessions.find(s => s.id === activeId);
+  const msgs: AIMsg[] = useMemo(() => (current?.messages ?? []).map(m => ({
+    role: m.role, text: m.text,
+    products: m.productIds ? m.productIds.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean) as Product[] : undefined,
+  })), [current]);
+
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const prompts = [
-    "Find me a mini excavator",
-    "Show all skid steers",
-    "Shipping to 75201?",
-    "Financing options",
-    "Best for landscaping",
-  ];
+  const prompts = ["Find me a mini excavator", "Show all skid steers", "Shipping to 75201?", "Financing options", "Best for landscaping"];
+
+  const pushMsg = (msg: ChatMsg, titleHint?: string) => {
+    setSessions(prev => prev.map(s => s.id === activeId
+      ? { ...s, title: s.title === "New chat" && titleHint ? titleHint.slice(0, 40) : s.title, messages: [...s.messages, msg] }
+      : s));
+  };
 
   const send = (t?: string) => {
     const text = (t ?? input).trim();
-    if (!text) return;
-    setMsgs(m => [...m, { role: "user", text }]);
+    if (!text || !activeId) return;
+    pushMsg({ role: "user", text, ts: Date.now() }, text);
     setInput("");
     setTyping(true);
     setTimeout(() => {
-      setMsgs(m => [...m, aiAnswer(text, PRODUCTS)]);
+      const ans = aiAnswer(text, PRODUCTS);
+      pushMsg({ role: "ai", text: ans.text, productIds: ans.products?.map(p => p.id), ts: Date.now() });
       setTyping(false);
     }, 550);
+  };
+
+  const newChat = () => {
+    const id = "s" + Date.now();
+    setSessions(prev => [{ id, title: "New chat", createdAt: Date.now(), messages: [{ role: "ai", text: "New session — what are you looking for?", ts: Date.now() }] }, ...prev]);
+    setActiveId(id);
+    setShowHistory(false);
+  };
+
+  const deleteSession = (id: string) => {
+    setSessions(prev => prev.filter(s => s.id !== id));
+    if (id === activeId) setActiveId(null);
   };
 
   return (
@@ -617,7 +701,10 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
             <Sparkles className="h-5 w-5 text-primary" /> Typhon AI
           </h1>
         </div>
-        <IconBtn><Settings className="h-4 w-4" /></IconBtn>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowHistory(true)} title="Chat history"><IconBtn><Clock className="h-4 w-4" /></IconBtn></button>
+          <button onClick={newChat} title="New chat"><IconBtn><Plus className="h-4 w-4" /></IconBtn></button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-5 space-y-3">
@@ -625,21 +712,14 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
           <div key={i} className="space-y-2">
             <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "glass rounded-bl-sm"
-              }`}>
-                {m.text}
-              </div>
+                m.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "glass rounded-bl-sm"
+              }`}>{m.text}</div>
             </div>
             {m.products && m.products.length > 0 && (
               <div className="space-y-2">
                 {m.products.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => props.onOpenProduct(p)}
-                    className="w-full text-left glass rounded-2xl p-3 flex gap-3 items-center hover:bg-primary/5 transition-colors"
-                  >
+                  <button key={p.id} onClick={() => props.onOpenProduct(p)}
+                    className="w-full text-left glass rounded-2xl p-3 flex gap-3 items-center hover:bg-primary/5 transition-colors">
                     <img src={p.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{p.brand}</p>
@@ -652,12 +732,8 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
                     <div className="flex flex-col gap-1.5">
                       <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1">View</span>
                       {p.price && (
-                        <span
-                          onClick={(e) => { e.stopPropagation(); props.addToCart(p.id); }}
-                          className="rounded-full glass-strong text-[10px] font-bold px-2.5 py-1 text-center"
-                        >
-                          + Cart
-                        </span>
+                        <span onClick={(e) => { e.stopPropagation(); props.addToCart(p.id); }}
+                          className="rounded-full glass-strong text-[10px] font-bold px-2.5 py-1 text-center">+ Cart</span>
                       )}
                     </div>
                   </button>
@@ -677,34 +753,52 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
         )}
       </div>
 
-      {/* Suggested prompts */}
       <div className="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar">
         {prompts.map(p => (
-          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            {p}
-          </button>
+          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">{p}</button>
         ))}
       </div>
 
       <div className="px-5 pb-3">
         <div className="glass-strong rounded-full flex items-center gap-2 pl-4 pr-1.5 py-1.5">
-          <input
-            value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Ask anything — products, shipping, financing..."
-            className="flex-1 bg-transparent text-sm outline-none py-1.5"
-          />
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+            placeholder="Ask anything — products, shipping, financing..." className="flex-1 bg-transparent text-sm outline-none py-1.5" />
           <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center">
             <Send className="h-4 w-4" />
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground text-center mt-2">
-          Works offline with built-in knowledge · Connect OpenAI key in Admin for GPT-4 mode
+          Works offline with built-in knowledge · Chat history saved automatically
         </p>
       </div>
+
+      {showHistory && (
+        <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end" onClick={() => setShowHistory(false)}>
+          <div className="w-full bg-card rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-black text-lg">Chat history</h3>
+              <button onClick={() => setShowHistory(false)} className="h-8 w-8 rounded-full bg-muted grid place-items-center"><X className="h-4 w-4" /></button>
+            </div>
+            <button onClick={newChat} className="w-full mb-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm py-3 flex items-center justify-center gap-2"><Plus className="h-4 w-4" /> New chat</button>
+            <div className="space-y-2">
+              {sessions.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No saved chats yet.</p>}
+              {sessions.map(s => (
+                <div key={s.id} className={`rounded-2xl border p-3 flex items-center gap-3 ${s.id === activeId ? "border-primary bg-primary/5" : ""}`}>
+                  <button onClick={() => { setActiveId(s.id); setShowHistory(false); }} className="flex-1 text-left">
+                    <p className="font-bold text-sm truncate">{s.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(s.createdAt).toLocaleString()} · {s.messages.length} msgs</p>
+                  </button>
+                  <button onClick={() => deleteSession(s.id)} className="h-8 w-8 rounded-full bg-muted grid place-items-center text-error"><X className="h-4 w-4" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 /* ===================== ORDERS ===================== */
 function OrdersScreen() {
@@ -831,13 +925,16 @@ function AccountScreen(props: {
   signedIn: boolean; isAdmin: boolean; onSignOut: () => void;
   setTab?: (t: TabKey) => void;
   onOpenProduct?: (p: Product) => void;
+  openPanel?: (k: PanelKey) => void;
+  profile?: { name: string; company: string; location: string; initials: string; avatar?: string; cover?: string };
 }) {
+  const op = props.openPanel ?? (() => {});
   const quickLinks = [
     { icon: Tag, label: "Vouchers", onClick: props.onOpenCoupons },
-    { icon: Heart, label: "Wishlist", onClick: () => {} },
-    { icon: Store, label: "Following", onClick: () => {} },
-    { icon: Clock, label: "History", onClick: () => {} },
-    { icon: Wallet, label: "Wallet", onClick: () => {} },
+    { icon: Heart, label: "Wishlist", onClick: () => op("wishlist") },
+    { icon: Store, label: "Following", onClick: () => op("following") },
+    { icon: Clock, label: "History", onClick: () => op("history") },
+    { icon: Wallet, label: "Wallet", onClick: () => op("wallet") },
   ];
   const orderActions = [
     { icon: CreditCard, label: "To pay", count: 1 },
@@ -847,24 +944,31 @@ function AccountScreen(props: {
     { icon: RotateCcw, label: "Refunds", count: 0 },
   ];
 
+
   return (
     <div className="pb-6">
-      {/* Gradient hero header */}
+      {/* Gradient hero header with optional cover */}
       <div className="relative -mt-12 pt-16 pb-20 px-5 bg-gradient-to-br from-primary via-blue-600 to-blue-800 text-white overflow-hidden">
+        {props.profile?.cover && (
+          <img src={props.profile.cover} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/70 via-blue-700/60 to-blue-900/80" />
         <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute bottom-0 left-1/2 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {props.signedIn ? (
               <>
-                <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur grid place-items-center font-black text-lg shrink-0 border-2 border-white/40">JM</div>
-                <div className="min-w-0">
+                <button onClick={() => op("profile")} className="h-14 w-14 rounded-full bg-white/20 backdrop-blur grid place-items-center font-black text-lg shrink-0 border-2 border-white/40 overflow-hidden">
+                  {props.profile?.avatar ? <img src={props.profile.avatar} alt="" className="h-full w-full object-cover" /> : (props.profile?.initials ?? "JM")}
+                </button>
+                <button onClick={() => op("profile")} className="min-w-0 text-left">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-black text-lg truncate">John Miller</p>
+                    <p className="font-black text-lg truncate">{props.profile?.name ?? "John Miller"}</p>
                     <BadgeCheck className="h-4 w-4 shrink-0" />
                   </div>
-                  <p className="text-[11px] opacity-80 truncate">Miller Construction Co. · Dallas, TX</p>
-                </div>
+                  <p className="text-[11px] opacity-80 truncate">{props.profile?.company ?? "Miller Construction Co."} · {props.profile?.location ?? "Dallas, TX"}</p>
+                </button>
               </>
             ) : (
               <button onClick={props.onOpenAuth} className="flex items-center gap-3">
@@ -882,6 +986,7 @@ function AccountScreen(props: {
           </div>
         </div>
       </div>
+
 
       {/* Quick links — overlapping card */}
       <div className="px-3 -mt-14 relative z-10">
@@ -938,7 +1043,7 @@ function AccountScreen(props: {
 
       {/* Share & Earn */}
       <div className="px-3 mt-3">
-        <button className="w-full bg-card border rounded-2xl px-4 py-3 flex items-center gap-3">
+        <button onClick={() => op("share")} className="w-full bg-card border rounded-2xl px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/10 grid place-items-center"><Receipt className="h-4 w-4 text-primary" /></div>
           <div className="flex-1 text-left">
             <p className="font-bold text-sm">Share & Earn</p>
@@ -952,13 +1057,13 @@ function AccountScreen(props: {
       <div className="px-3 mt-3">
         <div className="bg-card border rounded-3xl overflow-hidden divide-y">
           {[
-            { icon: MapPin, label: "Addresses", trail: "2 saved", onClick: () => {} },
-            { icon: FileText, label: "My Quotes", trail: "3", onClick: () => {} },
-            { icon: BadgeCheck, label: "Verified Business", trail: "Active", onClick: () => {} },
+            { icon: MapPin, label: "Addresses", trail: "2 saved", onClick: () => op("addresses") },
+            { icon: FileText, label: "My Quotes", trail: "3", onClick: () => op("quotes") },
+            { icon: BadgeCheck, label: "Verified Business", trail: "Active", onClick: () => op("verified") },
             ...(props.isAdmin ? [{ icon: Shield, label: "Admin Dashboard", trail: "", onClick: props.onOpenAdmin }] : []),
             { icon: Settings, label: "Settings", trail: "", onClick: props.onOpenSettings },
-            { icon: Headphones, label: "Help & Support", trail: "24/7", onClick: () => {} },
-            { icon: Eye, label: "Recently viewed", trail: "", onClick: () => {} },
+            { icon: Headphones, label: "Help & Support", trail: "24/7", onClick: () => op("help") },
+            { icon: Eye, label: "Recently viewed", trail: "", onClick: () => op("history") },
           ].map(({ icon: Icon, label, trail, onClick }) => (
             <button key={label} onClick={onClick} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted transition-colors">
               <div className="h-8 w-8 rounded-xl bg-muted grid place-items-center"><Icon className="h-4 w-4" /></div>
@@ -969,6 +1074,7 @@ function AccountScreen(props: {
           ))}
         </div>
       </div>
+
 
       {/* Recommended */}
       <div className="px-3 mt-4">
