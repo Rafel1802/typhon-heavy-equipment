@@ -188,7 +188,7 @@ function App() {
               <span>5G</span><span>􀛨</span>
             </div>
 
-            <Screen tab={tab} theme={theme} onOpenProduct={setSelected}
+            <Screen tab={tab} theme={theme} onOpenProduct={openProduct}
               cart={cart} favs={favs} addToCart={addToCart} toggleFav={toggleFav}
               onOpenCart={() => setCartOpen(true)} cartCount={cartCount}
               setTab={setTab}
@@ -203,7 +203,11 @@ function App() {
               cartBounce={cartBounce}
               categoryFilter={categoryFilter}
               setCategoryFilter={setCategoryFilter}
+              openPanel={setPanel}
+              profile={profile}
+              banners={liveBanners}
             />
+
 
             {/* Floating AI button (not on AI tab) */}
             {tab !== "ai" && (
