@@ -87,7 +87,6 @@ function App() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selected, setSelected] = useState<Product | null>(null);
   const [cart, setCart] = useState<Record<string, number>>({});
-  const [favs, setFavs] = useState<Set<string>>(new Set());
   const [cartOpen, setCartOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -100,6 +99,23 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartBounce, setCartBounce] = useState(0);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [panel, setPanel] = useState<PanelKey>(null);
+
+  const [wishlist, setWishlist] = useWishlist();
+  const [, setRecentlyViewed] = useRecentlyViewed();
+  const [profile] = useProfile({
+    name: "John Miller", company: "Miller Construction Co.", location: "Dallas, TX",
+    initials: "JM", email: "john@millerco.com", phone: "+1 (214) 555-0142",
+  });
+  const defaultBanners: Banner[] = [
+    { id: "b1", title: "Compactors & Rollers\nUp to 15% off", subtitle: "Summer Savings", cta: "Shop Now", image: hero1, live: true },
+    { id: "b2", title: "TX-35 Mini Excavator\nNew arrival", subtitle: "Just landed", cta: "Discover", image: excavator, live: true },
+    { id: "b3", title: "WL-50 Wheel Loader\n0% APR · 12 months", subtitle: "Financing", cta: "Get pre-approved", image: wheelloader, live: true },
+  ];
+  const [banners] = useBanners(defaultBanners);
+  const liveBanners = useMemo(() => banners.filter(b => b.live), [banners]);
+
+  const favs = useMemo(() => new Set(wishlist), [wishlist]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -125,11 +141,12 @@ function App() {
     if (next[id] <= 0) delete next[id];
     return next;
   });
-  const toggleFav = (id: string) => setFavs(s => {
-    const next = new Set(s);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
+  const toggleFav = (id: string) => setWishlist(l => l.includes(id) ? l.filter(x => x !== id) : [...l, id]);
+
+  const openProduct = (p: Product) => {
+    setSelected(p);
+    setRecentlyViewed(prev => [p.id, ...prev.filter(x => x !== p.id)].slice(0, 20));
+  };
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
