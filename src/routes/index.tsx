@@ -628,29 +628,65 @@ function aiAnswer(query: string, products: Product[]): AIMsg {
 }
 
 function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: string) => void }) {
-  const [msgs, setMsgs] = useState<AIMsg[]>([
-    { role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'." },
-  ]);
+  const [sessions, setSessions] = useChatSessions();
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Ensure a current session exists
+  useEffect(() => {
+    if (!activeId) {
+      if (sessions.length > 0) setActiveId(sessions[0].id);
+      else {
+        const id = "s" + Date.now();
+        const s: ChatSession = {
+          id, title: "New chat", createdAt: Date.now(),
+          messages: [{ role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'.", ts: Date.now() }],
+        };
+        setSessions([s]);
+        setActiveId(id);
+      }
+    }
+  }, [activeId, sessions, setSessions]);
+
+  const current = sessions.find(s => s.id === activeId);
+  const msgs: AIMsg[] = useMemo(() => (current?.messages ?? []).map(m => ({
+    role: m.role, text: m.text,
+    products: m.productIds ? m.productIds.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean) as Product[] : undefined,
+  })), [current]);
+
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const prompts = [
-    "Find me a mini excavator",
-    "Show all skid steers",
-    "Shipping to 75201?",
-    "Financing options",
-    "Best for landscaping",
-  ];
+  const prompts = ["Find me a mini excavator", "Show all skid steers", "Shipping to 75201?", "Financing options", "Best for landscaping"];
+
+  const pushMsg = (msg: ChatMsg, titleHint?: string) => {
+    setSessions(prev => prev.map(s => s.id === activeId
+      ? { ...s, title: s.title === "New chat" && titleHint ? titleHint.slice(0, 40) : s.title, messages: [...s.messages, msg] }
+      : s));
+  };
 
   const send = (t?: string) => {
     const text = (t ?? input).trim();
-    if (!text) return;
-    setMsgs(m => [...m, { role: "user", text }]);
+    if (!text || !activeId) return;
+    pushMsg({ role: "user", text, ts: Date.now() }, text);
     setInput("");
     setTyping(true);
     setTimeout(() => {
-      setMsgs(m => [...m, aiAnswer(text, PRODUCTS)]);
+      const ans = aiAnswer(text, PRODUCTS);
+      pushMsg({ role: "ai", text: ans.text, productIds: ans.products?.map(p => p.id), ts: Date.now() });
       setTyping(false);
     }, 550);
+  };
+
+  const newChat = () => {
+    const id = "s" + Date.now();
+    setSessions(prev => [{ id, title: "New chat", createdAt: Date.now(), messages: [{ role: "ai", text: "New session — what are you looking for?", ts: Date.now() }] }, ...prev]);
+    setActiveId(id);
+    setShowHistory(false);
+  };
+
+  const deleteSession = (id: string) => {
+    setSessions(prev => prev.filter(s => s.id !== id));
+    if (id === activeId) setActiveId(null);
   };
 
   return (
@@ -665,7 +701,10 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
             <Sparkles className="h-5 w-5 text-primary" /> Typhon AI
           </h1>
         </div>
-        <IconBtn><Settings className="h-4 w-4" /></IconBtn>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowHistory(true)} title="Chat history"><IconBtn><Clock className="h-4 w-4" /></IconBtn></button>
+          <button onClick={newChat} title="New chat"><IconBtn><Plus className="h-4 w-4" /></IconBtn></button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-5 space-y-3">
@@ -673,21 +712,14 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
           <div key={i} className="space-y-2">
             <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "glass rounded-bl-sm"
-              }`}>
-                {m.text}
-              </div>
+                m.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "glass rounded-bl-sm"
+              }`}>{m.text}</div>
             </div>
             {m.products && m.products.length > 0 && (
               <div className="space-y-2">
                 {m.products.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => props.onOpenProduct(p)}
-                    className="w-full text-left glass rounded-2xl p-3 flex gap-3 items-center hover:bg-primary/5 transition-colors"
-                  >
+                  <button key={p.id} onClick={() => props.onOpenProduct(p)}
+                    className="w-full text-left glass rounded-2xl p-3 flex gap-3 items-center hover:bg-primary/5 transition-colors">
                     <img src={p.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{p.brand}</p>
@@ -700,12 +732,8 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
                     <div className="flex flex-col gap-1.5">
                       <span className="rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1">View</span>
                       {p.price && (
-                        <span
-                          onClick={(e) => { e.stopPropagation(); props.addToCart(p.id); }}
-                          className="rounded-full glass-strong text-[10px] font-bold px-2.5 py-1 text-center"
-                        >
-                          + Cart
-                        </span>
+                        <span onClick={(e) => { e.stopPropagation(); props.addToCart(p.id); }}
+                          className="rounded-full glass-strong text-[10px] font-bold px-2.5 py-1 text-center">+ Cart</span>
                       )}
                     </div>
                   </button>
@@ -725,34 +753,52 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
         )}
       </div>
 
-      {/* Suggested prompts */}
       <div className="px-5 py-3 flex gap-2 overflow-x-auto no-scrollbar">
         {prompts.map(p => (
-          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            {p}
-          </button>
+          <button key={p} onClick={() => send(p)} className="shrink-0 glass rounded-full px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">{p}</button>
         ))}
       </div>
 
       <div className="px-5 pb-3">
         <div className="glass-strong rounded-full flex items-center gap-2 pl-4 pr-1.5 py-1.5">
-          <input
-            value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Ask anything — products, shipping, financing..."
-            className="flex-1 bg-transparent text-sm outline-none py-1.5"
-          />
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+            placeholder="Ask anything — products, shipping, financing..." className="flex-1 bg-transparent text-sm outline-none py-1.5" />
           <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center">
             <Send className="h-4 w-4" />
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground text-center mt-2">
-          Works offline with built-in knowledge · Connect OpenAI key in Admin for GPT-4 mode
+          Works offline with built-in knowledge · Chat history saved automatically
         </p>
       </div>
+
+      {showHistory && (
+        <div className="absolute inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-end" onClick={() => setShowHistory(false)}>
+          <div className="w-full bg-card rounded-t-3xl p-4 max-h-[70%] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-black text-lg">Chat history</h3>
+              <button onClick={() => setShowHistory(false)} className="h-8 w-8 rounded-full bg-muted grid place-items-center"><X className="h-4 w-4" /></button>
+            </div>
+            <button onClick={newChat} className="w-full mb-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm py-3 flex items-center justify-center gap-2"><Plus className="h-4 w-4" /> New chat</button>
+            <div className="space-y-2">
+              {sessions.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No saved chats yet.</p>}
+              {sessions.map(s => (
+                <div key={s.id} className={`rounded-2xl border p-3 flex items-center gap-3 ${s.id === activeId ? "border-primary bg-primary/5" : ""}`}>
+                  <button onClick={() => { setActiveId(s.id); setShowHistory(false); }} className="flex-1 text-left">
+                    <p className="font-bold text-sm truncate">{s.title}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(s.createdAt).toLocaleString()} · {s.messages.length} msgs</p>
+                  </button>
+                  <button onClick={() => deleteSession(s.id)} className="h-8 w-8 rounded-full bg-muted grid place-items-center text-error"><X className="h-4 w-4" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 /* ===================== ORDERS ===================== */
 function OrdersScreen() {
