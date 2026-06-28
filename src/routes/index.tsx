@@ -334,14 +334,19 @@ function HomeScreen(props: {
   favs: Set<string>; addToCart: (id: string) => void; toggleFav: (id: string) => void;
   onOpenNotifs?: () => void; setTab?: (t: TabKey) => void; cartBounce?: number;
   openCategory?: (c: string) => void;
+  profile?: { name: string; initials: string; avatar?: string };
+  banners?: Banner[];
 }) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const firstName = (props.profile?.name ?? "John Miller").split(" ")[0];
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="px-5 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">Welcome back</p>
-          <h1 className="text-xl font-black tracking-tight">Build bigger, John.</h1>
+          <h1 className="text-xl font-black tracking-tight">Build bigger, {firstName}.</h1>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={props.onOpenNotifs}>
@@ -355,44 +360,43 @@ function HomeScreen(props: {
               <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
             )}
           </button>
-          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm">JM</button>
+          <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm overflow-hidden">
+            {props.profile?.avatar ? <img src={props.profile.avatar} alt="" className="h-full w-full object-cover" /> : props.profile?.initials ?? "JM"}
+          </button>
         </div>
       </div>
 
       {/* Search */}
       <div className="px-5">
-        <div className="glass rounded-2xl flex items-center gap-2 px-4 py-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            placeholder="Search excavators, skid steers..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <button className="h-7 w-7 rounded-full bg-muted grid place-items-center"><Mic className="h-3.5 w-3.5" /></button>
-          <button className="h-7 w-7 rounded-full bg-primary grid place-items-center"><Sparkles className="h-3.5 w-3.5 text-primary-foreground" /></button>
+        <div className="relative">
+          <div className="glass rounded-2xl flex items-center gap-2 px-4 py-3">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              value={query} onChange={e => setQuery(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              placeholder="Search excavators, skid steers..."
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button className="h-7 w-7 rounded-full bg-muted grid place-items-center"><Mic className="h-3.5 w-3.5" /></button>
+            <button onClick={() => props.setTab?.("ai")} className="h-7 w-7 rounded-full bg-primary grid place-items-center"><Sparkles className="h-3.5 w-3.5 text-primary-foreground" /></button>
+          </div>
+          {focused && query && (
+            <SearchDropdown
+              query={query}
+              products={PRODUCTS}
+              onPick={(p) => { const full = PRODUCTS.find(x => x.id === p.id); if (full) props.onOpenProduct(full); setQuery(""); }}
+              onClose={() => setQuery("")}
+            />
+          )}
         </div>
       </div>
 
-      {/* Hero banner */}
+      {/* Hero slideshow */}
       <div className="px-5">
-        <div className="relative rounded-3xl overflow-hidden h-52 shadow-xl">
-          <img src={hero1} alt="Heavy machinery" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/30 to-transparent" />
-          <div className="absolute inset-0 p-5 flex flex-col justify-between text-white">
-            <span className="self-start glass-strong rounded-full px-3 py-1 text-[10px] font-bold tracking-widest">SUMMER SAVINGS</span>
-            <div>
-              <h2 className="text-2xl font-black leading-tight">Compactors & Rollers<br />Up to 15% off</h2>
-              <button className="mt-3 inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-4 py-2 text-xs font-bold">
-                Shop Now <ArrowRight className="h-3 w-3" />
-              </button>
-            </div>
-            <div className="absolute bottom-3 right-5 flex gap-1">
-              <span className="h-1.5 w-6 rounded-full bg-white" />
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
-              <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
-            </div>
-          </div>
-        </div>
+        <HeroSlideshow slides={props.banners ?? []} fallback={hero1} onShop={() => props.setTab?.("shop")} />
       </div>
+
 
       {/* Categories */}
       <div className="px-5">
