@@ -311,6 +311,9 @@ function Screen(props: {
   cartBounce?: number;
   categoryFilter: string | null;
   setCategoryFilter: (c: string | null) => void;
+  openPanel: (k: PanelKey) => void;
+  profile: { name: string; company: string; location: string; initials: string; avatar?: string; cover?: string };
+  banners: Banner[];
 }) {
   const { tab } = props;
   const openCategory = (c: string) => { props.setCategoryFilter(c); props.setTab("shop"); };
