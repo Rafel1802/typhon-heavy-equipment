@@ -901,22 +901,28 @@ function AccountScreen(props: {
 
   return (
     <div className="pb-6">
-      {/* Gradient hero header */}
+      {/* Gradient hero header with optional cover */}
       <div className="relative -mt-12 pt-16 pb-20 px-5 bg-gradient-to-br from-primary via-blue-600 to-blue-800 text-white overflow-hidden">
+        {props.profile?.cover && (
+          <img src={props.profile.cover} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/70 via-blue-700/60 to-blue-900/80" />
         <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute bottom-0 left-1/2 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {props.signedIn ? (
               <>
-                <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur grid place-items-center font-black text-lg shrink-0 border-2 border-white/40">JM</div>
-                <div className="min-w-0">
+                <button onClick={() => op("profile")} className="h-14 w-14 rounded-full bg-white/20 backdrop-blur grid place-items-center font-black text-lg shrink-0 border-2 border-white/40 overflow-hidden">
+                  {props.profile?.avatar ? <img src={props.profile.avatar} alt="" className="h-full w-full object-cover" /> : (props.profile?.initials ?? "JM")}
+                </button>
+                <button onClick={() => op("profile")} className="min-w-0 text-left">
                   <div className="flex items-center gap-1.5">
-                    <p className="font-black text-lg truncate">John Miller</p>
+                    <p className="font-black text-lg truncate">{props.profile?.name ?? "John Miller"}</p>
                     <BadgeCheck className="h-4 w-4 shrink-0" />
                   </div>
-                  <p className="text-[11px] opacity-80 truncate">Miller Construction Co. · Dallas, TX</p>
-                </div>
+                  <p className="text-[11px] opacity-80 truncate">{props.profile?.company ?? "Miller Construction Co."} · {props.profile?.location ?? "Dallas, TX"}</p>
+                </button>
               </>
             ) : (
               <button onClick={props.onOpenAuth} className="flex items-center gap-3">
@@ -934,6 +940,7 @@ function AccountScreen(props: {
           </div>
         </div>
       </div>
+
 
       {/* Quick links — overlapping card */}
       <div className="px-3 -mt-14 relative z-10">
