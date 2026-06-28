@@ -997,7 +997,7 @@ function AccountScreen(props: {
 
       {/* Share & Earn */}
       <div className="px-3 mt-3">
-        <button className="w-full bg-card border rounded-2xl px-4 py-3 flex items-center gap-3">
+        <button onClick={() => op("share")} className="w-full bg-card border rounded-2xl px-4 py-3 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-primary/10 grid place-items-center"><Receipt className="h-4 w-4 text-primary" /></div>
           <div className="flex-1 text-left">
             <p className="font-bold text-sm">Share & Earn</p>
@@ -1011,13 +1011,13 @@ function AccountScreen(props: {
       <div className="px-3 mt-3">
         <div className="bg-card border rounded-3xl overflow-hidden divide-y">
           {[
-            { icon: MapPin, label: "Addresses", trail: "2 saved", onClick: () => {} },
-            { icon: FileText, label: "My Quotes", trail: "3", onClick: () => {} },
-            { icon: BadgeCheck, label: "Verified Business", trail: "Active", onClick: () => {} },
+            { icon: MapPin, label: "Addresses", trail: "2 saved", onClick: () => op("addresses") },
+            { icon: FileText, label: "My Quotes", trail: "3", onClick: () => op("quotes") },
+            { icon: BadgeCheck, label: "Verified Business", trail: "Active", onClick: () => op("verified") },
             ...(props.isAdmin ? [{ icon: Shield, label: "Admin Dashboard", trail: "", onClick: props.onOpenAdmin }] : []),
             { icon: Settings, label: "Settings", trail: "", onClick: props.onOpenSettings },
-            { icon: Headphones, label: "Help & Support", trail: "24/7", onClick: () => {} },
-            { icon: Eye, label: "Recently viewed", trail: "", onClick: () => {} },
+            { icon: Headphones, label: "Help & Support", trail: "24/7", onClick: () => op("help") },
+            { icon: Eye, label: "Recently viewed", trail: "", onClick: () => op("history") },
           ].map(({ icon: Icon, label, trail, onClick }) => (
             <button key={label} onClick={onClick} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted transition-colors">
               <div className="h-8 w-8 rounded-xl bg-muted grid place-items-center"><Icon className="h-4 w-4" /></div>
@@ -1028,6 +1028,7 @@ function AccountScreen(props: {
           ))}
         </div>
       </div>
+
 
       {/* Recommended */}
       <div className="px-3 mt-4">
