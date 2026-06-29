@@ -631,6 +631,8 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
   const [sessions, setSessions] = useChatSessions();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [aiCfg] = useAIConfig();
+  const aiConnected = aiCfg.provider === "google" && !!aiCfg.googleApiKey;
 
   // Ensure a current session exists
   useEffect(() => {
@@ -664,17 +666,46 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       : s));
   };
 
-  const send = (t?: string) => {
+  const callGemini = async (history: ChatMsg[], userText: string): Promise<string> => {
+    const sys = aiCfg.systemPrompt + "\n\nProduct catalog (id · name · brand · price · category):\n" +
+      PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const contents = [
+      ...history.filter(m => m.text).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
+      { role: "user", parts: [{ text: userText }] },
+    ];
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(aiCfg.model)}:generateContent?key=${encodeURIComponent(aiCfg.googleApiKey)}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ system_instruction: { parts: [{ text: sys }] }, contents }),
+    });
+    const j: any = await res.json();
+    if (!res.ok) throw new Error(j?.error?.message || `HTTP ${res.status}`);
+    return j?.candidates?.[0]?.content?.parts?.[0]?.text || "(no response)";
+  };
+
+  const send = async (t?: string) => {
     const text = (t ?? input).trim();
     if (!text || !activeId) return;
     pushMsg({ role: "user", text, ts: Date.now() }, text);
     setInput("");
     setTyping(true);
-    setTimeout(() => {
-      const ans = aiAnswer(text, PRODUCTS);
-      pushMsg({ role: "ai", text: ans.text, productIds: ans.products?.map(p => p.id), ts: Date.now() });
-      setTyping(false);
-    }, 550);
+    // Always do local product search for cards
+    const local = aiAnswer(text, PRODUCTS);
+    if (aiConnected) {
+      try {
+        const history = current?.messages ?? [];
+        const reply = await callGemini(history, text);
+        pushMsg({ role: "ai", text: reply, productIds: local.products?.map(p => p.id), ts: Date.now() });
+      } catch (e: any) {
+        pushMsg({ role: "ai", text: `Gemini error: ${e.message}. Falling back to built-in answer.\n\n${local.text}`, productIds: local.products?.map(p => p.id), ts: Date.now() });
+      } finally {
+        setTyping(false);
+      }
+    } else {
+      setTimeout(() => {
+        pushMsg({ role: "ai", text: local.text, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        setTyping(false);
+      }, 450);
+    }
   };
 
   const newChat = () => {
