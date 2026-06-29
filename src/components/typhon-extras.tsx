@@ -1052,10 +1052,16 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "general") {
+    const handle = (x: string) => {
+      if (x.startsWith("Clear")) { alert("Cache cleared (24 MB freed)."); }
+      else if (x.startsWith("Reset")) { if (confirm("Reset all preferences to default?")) alert("Preferences reset."); }
+      else if (x.startsWith("Download")) { alert("Your data export will be emailed within 24 hours."); }
+      else if (x.startsWith("Beta")) { alert("Beta features enrollment opened."); }
+    };
     body = (
       <div className="bg-card border rounded-2xl divide-y overflow-hidden">
         {["Clear cache (24 MB)", "Reset preferences", "Download data", "Beta features"].map(x => (
-          <button key={x} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+          <button key={x} onClick={() => handle(x)} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
             {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
           </button>
         ))}
