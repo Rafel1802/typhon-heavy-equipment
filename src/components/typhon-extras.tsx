@@ -432,11 +432,11 @@ export function AdminDashboard({ onClose }: { onClose: () => void }) {
           <div className="flex gap-1 p-2 min-w-max">
             {([
               ["overview", BarChart3], ["orders", ShoppingBag], ["products", Package],
-              ["coupons", Tag], ["categories", Layers], ["menu", Menu], ["banners", Megaphone], ["customers", Users],
+              ["coupons", Tag], ["categories", Layers], ["menu", Menu], ["banners", Megaphone], ["customers", Users], ["ai", Sparkles],
             ] as [AdminSection, any][]).map(([k, Icon]) => (
               <button key={k} onClick={() => setSection(k)}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold capitalize ${section === k ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-                <Icon className="h-3.5 w-3.5" /> {k}
+                <Icon className="h-3.5 w-3.5" /> {k === "ai" ? "AI Bot" : k}
               </button>
             ))}
           </div>
@@ -451,6 +451,7 @@ export function AdminDashboard({ onClose }: { onClose: () => void }) {
           {section === "menu" && <AdminMenuBuilder />}
           {section === "banners" && <AdminBanners />}
           {section === "customers" && <AdminCustomers />}
+          {section === "ai" && <AdminAI />}
         </div>
       </div>
     </div>
