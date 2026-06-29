@@ -1032,34 +1032,10 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "payment") {
-    body = (
-      <div className="space-y-2">
-        {[
-          { brand: "Visa", last4: "3568", exp: "08/27", def: true },
-          { brand: "Mastercard", last4: "1024", exp: "11/26", def: false },
-        ].map(c => (
-          <div key={c.last4} className="bg-card border rounded-2xl p-4 flex items-center gap-3">
-            <div className="h-10 w-14 rounded-lg bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white text-[10px] font-black">{c.brand}</div>
-            <div className="flex-1">
-              <p className="font-bold text-sm">•••• {c.last4}</p>
-              <p className="text-[11px] text-muted-foreground">Expires {c.exp}{c.def ? " · Default" : ""}</p>
-            </div>
-            <button className="text-[11px] font-bold text-error">Remove</button>
-          </div>
-        ))}
-        <button className="w-full rounded-2xl border-2 border-dashed border-muted-foreground/30 py-4 text-sm font-bold text-muted-foreground">+ Add payment method</button>
-      </div>
-    );
+    body = <PaymentMethodsPanel />;
   } else if (k === "security") {
-    body = (
-      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
-        {["Change password", "Two-factor authentication", "Connected devices", "Login history", "Delete account"].map(x => (
-          <button key={x} className={`w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted ${x === "Delete account" ? "text-error" : ""}`}>
-            {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-        ))}
-      </div>
-    );
+    body = <SecurityPanel />;
+  }
   } else if (k === "addresses") {
     body = (
       <div className="space-y-2">
