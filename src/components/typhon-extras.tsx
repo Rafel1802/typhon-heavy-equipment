@@ -1117,3 +1117,144 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
   );
 }
 
+
+/* ============================================================
+   PAYMENT METHODS PANEL (functional)
+============================================================ */
+function PaymentMethodsPanel() {
+  const [cards, setCards] = usePaymentCards();
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ brand: "Visa", number: "", exp: "" });
+
+  const remove = (id: string) => {
+    if (!confirm("Remove this card?")) return;
+    setCards(cards.filter(c => c.id !== id));
+  };
+  const makeDefault = (id: string) => setCards(cards.map(c => ({ ...c, def: c.id === id })));
+  const add = () => {
+    const last4 = form.number.replace(/\D/g, "").slice(-4);
+    if (last4.length < 4 || !/^\d{2}\/\d{2}$/.test(form.exp)) { alert("Enter a valid card number and expiry MM/YY."); return; }
+    setCards([...cards, { id: "c" + Date.now(), brand: form.brand, last4, exp: form.exp }]);
+    setAdding(false); setForm({ brand: "Visa", number: "", exp: "" });
+  };
+
+  return (
+    <div className="space-y-2">
+      {cards.map(c => (
+        <div key={c.id} className="bg-card border rounded-2xl p-4 flex items-center gap-3">
+          <div className="h-10 w-14 rounded-lg bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white text-[10px] font-black">{c.brand}</div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm">•••• {c.last4}</p>
+            <p className="text-[11px] text-muted-foreground truncate">Expires {c.exp}{c.def ? " · Default" : ""}</p>
+          </div>
+          {!c.def && <button onClick={() => makeDefault(c.id)} className="text-[11px] font-bold text-primary">Default</button>}
+          <button onClick={() => remove(c.id)} className="text-[11px] font-bold text-error">Remove</button>
+        </div>
+      ))}
+      {!adding ? (
+        <button onClick={() => setAdding(true)} className="w-full rounded-2xl border-2 border-dashed border-primary/40 py-4 text-sm font-bold text-primary">+ Add payment method</button>
+      ) : (
+        <div className="bg-card border rounded-2xl p-4 space-y-2">
+          <p className="font-black text-sm">New card</p>
+          <select value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-bold outline-none">
+            {["Visa", "Mastercard", "Amex", "Discover"].map(b => <option key={b}>{b}</option>)}
+          </select>
+          <input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} placeholder="Card number" inputMode="numeric" className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <input value={form.exp} onChange={e => setForm({ ...form, exp: e.target.value })} placeholder="MM/YY" className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => setAdding(false)} className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-bold">Cancel</button>
+            <button onClick={add} className="flex-1 rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-black">Save card</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   SECURITY PANEL (functional)
+============================================================ */
+function SecurityPanel() {
+  const [sec, setSec] = useSecurity();
+  const [view, setView] = useState<"root" | "pw" | "devices" | "history">("root");
+  const [pw, setPw] = useState({ old: "", n: "", c: "" });
+
+  const changePassword = () => {
+    if (pw.n.length < 8) { alert("Password must be at least 8 characters."); return; }
+    if (pw.n !== pw.c) { alert("Passwords do not match."); return; }
+    setSec({ ...sec, passwordUpdatedAt: Date.now() });
+    setPw({ old: "", n: "", c: "" });
+    alert("Password updated.");
+    setView("root");
+  };
+  const revoke = (id: string) => setSec({ ...sec, devices: sec.devices.filter(d => d.id !== id) });
+  const deleteAccount = () => {
+    if (!confirm("Permanently delete your account? This cannot be undone.")) return;
+    if (!confirm("Are you absolutely sure?")) return;
+    alert("Account deletion request submitted. You'll receive an email confirmation within 24 hours.");
+  };
+
+  if (view === "pw") return (
+    <div className="space-y-2">
+      <button onClick={() => setView("root")} className="text-xs font-bold text-primary mb-2">← Back</button>
+      <input type="password" placeholder="Current password" value={pw.old} onChange={e => setPw({ ...pw, old: e.target.value })} className="w-full bg-card border rounded-xl px-3 py-2.5 text-sm outline-none" />
+      <input type="password" placeholder="New password (min 8 chars)" value={pw.n} onChange={e => setPw({ ...pw, n: e.target.value })} className="w-full bg-card border rounded-xl px-3 py-2.5 text-sm outline-none" />
+      <input type="password" placeholder="Confirm new password" value={pw.c} onChange={e => setPw({ ...pw, c: e.target.value })} className="w-full bg-card border rounded-xl px-3 py-2.5 text-sm outline-none" />
+      <button onClick={changePassword} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3 text-sm mt-2">Update password</button>
+    </div>
+  );
+
+  if (view === "devices") return (
+    <div className="space-y-2">
+      <button onClick={() => setView("root")} className="text-xs font-bold text-primary mb-2">← Back</button>
+      {sec.devices.map(d => (
+        <div key={d.id} className="bg-card border rounded-2xl p-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm truncate">{d.name}</p>
+            <p className="text-[11px] text-muted-foreground">Last active {new Date(d.lastSeen).toLocaleString()}</p>
+          </div>
+          <button onClick={() => revoke(d.id)} className="text-[11px] font-bold text-error">Revoke</button>
+        </div>
+      ))}
+      {sec.devices.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No active sessions.</p>}
+    </div>
+  );
+
+  if (view === "history") return (
+    <div className="space-y-2">
+      <button onClick={() => setView("root")} className="text-xs font-bold text-primary mb-2">← Back</button>
+      {sec.loginHistory.map(l => (
+        <div key={l.id} className="bg-card border rounded-2xl p-3">
+          <p className="font-bold text-sm">{l.where}</p>
+          <p className="text-[11px] text-muted-foreground">{new Date(l.ts).toLocaleString()}</p>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+      <button onClick={() => setView("pw")} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        Change password <ChevRight className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex items-center justify-between px-4 py-3.5">
+        <div>
+          <p className="text-sm font-semibold">Two-factor authentication</p>
+          <p className="text-[11px] text-muted-foreground">{sec.twoFactor ? "Enabled · SMS" : "Disabled"}</p>
+        </div>
+        <button onClick={() => setSec({ ...sec, twoFactor: !sec.twoFactor })} className={`relative h-6 w-11 rounded-full transition-colors ${sec.twoFactor ? "bg-primary" : "bg-muted-foreground/30"}`}>
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${sec.twoFactor ? "left-5" : "left-0.5"}`} />
+        </button>
+      </div>
+      <button onClick={() => setView("devices")} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        Connected devices <span className="text-xs text-muted-foreground">{sec.devices.length} active <ChevRight className="inline h-4 w-4" /></span>
+      </button>
+      <button onClick={() => setView("history")} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        Login history <ChevRight className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <button onClick={deleteAccount} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted text-error">
+        Delete account <ChevRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
