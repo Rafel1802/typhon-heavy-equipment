@@ -26,7 +26,7 @@ import {
   FollowingSheet, HistorySheet, WalletSheet, AddressesSheet, QuotesSheet,
   VerifiedSheet, SearchDropdown, HeroSlideshow,
 } from "@/components/typhon-panels";
-import { useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
+import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
 
 type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
