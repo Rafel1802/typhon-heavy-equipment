@@ -6,6 +6,7 @@ import {
   Layers, Megaphone, Bell, Search, GripVertical, TrendingUp, DollarSign,
   ShoppingBag, Eye, Apple,
 } from "lucide-react";
+import { useAIConfig, usePaymentCards, useSecurity } from "@/lib/typhon-store";
 
 /* ============================================================
    AUTH SCREEN — login / register / google / phone
