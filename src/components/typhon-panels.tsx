@@ -50,19 +50,24 @@ export function ProfileEditSheet({ onClose }: { onClose: () => void }) {
       footer={
         <button onClick={() => { setProfile(draft); onClose(); }} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3.5">Save changes</button>
       }>
-      {/* Cover */}
-      <div className="relative h-32 rounded-2xl overflow-hidden bg-gradient-to-br from-primary to-blue-700 mb-12">
-        {draft.cover && <img src={draft.cover} alt="" className="absolute inset-0 h-full w-full object-cover" />}
-        <button onClick={() => coverRef.current?.click()} className="absolute bottom-2 right-2 glass-strong rounded-full px-3 py-1.5 text-[10px] font-bold flex items-center gap-1 text-white">
-          <Camera className="h-3 w-3" /> Change cover
-        </button>
+      {/* Cover + avatar */}
+      <div className="relative mb-14">
+        <div className="relative h-32 rounded-2xl overflow-hidden bg-gradient-to-br from-primary to-blue-700">
+          {draft.cover && <img src={draft.cover} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <button onClick={() => coverRef.current?.click()} className="absolute bottom-2 right-2 glass-strong rounded-full px-3 py-1.5 text-[10px] font-bold flex items-center gap-1 text-white">
+            <Camera className="h-3 w-3" /> Change cover
+          </button>
+        </div>
         <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={e => pick("cover", e.target.files?.[0])} />
-        {/* Avatar */}
+        {/* Avatar — sits OUTSIDE the overflow-hidden cover */}
         <div className="absolute -bottom-10 left-4">
-          <div className="relative h-20 w-20 rounded-full bg-white/20 backdrop-blur grid place-items-center font-black text-2xl border-4 border-background overflow-hidden">
-            {draft.avatar ? <img src={draft.avatar} alt="" className="absolute inset-0 h-full w-full object-cover" /> : <span>{draft.initials}</span>}
+          <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center font-black text-2xl text-white border-4 border-background overflow-hidden shadow-xl">
+            {draft.avatar
+              ? <img src={draft.avatar} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              : <span>{draft.initials}</span>}
           </div>
-          <button onClick={() => avatarRef.current?.click()} className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center border-2 border-background">
+          <button onClick={() => avatarRef.current?.click()} className="absolute bottom-0 right-0 h-7 w-7 rounded-full bg-primary text-primary-foreground grid place-items-center border-2 border-background shadow">
             <Camera className="h-3 w-3" />
           </button>
           <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={e => pick("avatar", e.target.files?.[0])} />
