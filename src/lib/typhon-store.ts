@@ -12,7 +12,49 @@ const K = {
   wallet: "typhon.wallet",
   addresses: "typhon.addresses",
   quotes: "typhon.quotes",
+  aiConfig: "typhon.aiConfig",
+  payments: "typhon.payments",
+  security: "typhon.security",
 };
+
+export type AIConfig = {
+  provider: "builtin" | "google";
+  googleApiKey: string;
+  model: string;
+  systemPrompt: string;
+};
+export type PaymentCard = { id: string; brand: string; last4: string; exp: string; def?: boolean };
+export type SecurityState = { twoFactor: boolean; passwordUpdatedAt: number; devices: { id: string; name: string; lastSeen: number }[]; loginHistory: { id: string; where: string; ts: number }[] };
+
+export function useAIConfig() {
+  return useLocal<AIConfig>(K.aiConfig, {
+    provider: "builtin",
+    googleApiKey: "",
+    model: "gemini-2.0-flash",
+    systemPrompt: "You are Typhon AI, an expert assistant for the TYPHON heavy machinery marketplace. Help users find equipment (excavators, loaders, skid steers, forklifts, scissor lifts, attachments), answer questions about shipping, financing, warranty, specs, and orders. Be concise, professional, and friendly.",
+  });
+}
+export function usePaymentCards() {
+  return useLocal<PaymentCard[]>(K.payments, [
+    { id: "c1", brand: "Visa", last4: "3568", exp: "08/27", def: true },
+    { id: "c2", brand: "Mastercard", last4: "1024", exp: "11/26" },
+  ]);
+}
+export function useSecurity() {
+  return useLocal<SecurityState>(K.security, {
+    twoFactor: false,
+    passwordUpdatedAt: Date.now() - 30 * 86400000,
+    devices: [
+      { id: "d1", name: "iPhone 15 Pro · Dallas, TX", lastSeen: Date.now() },
+      { id: "d2", name: "MacBook Pro · Dallas, TX", lastSeen: Date.now() - 3600000 },
+    ],
+    loginHistory: [
+      { id: "l1", where: "Dallas, TX · iPhone", ts: Date.now() - 3600000 },
+      { id: "l2", where: "Dallas, TX · MacBook", ts: Date.now() - 86400000 },
+      { id: "l3", where: "Fort Worth, TX · iPhone", ts: Date.now() - 5 * 86400000 },
+    ],
+  });
+}
 
 function load<T>(k: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
