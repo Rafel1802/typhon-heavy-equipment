@@ -1035,7 +1035,6 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
     body = <PaymentMethodsPanel />;
   } else if (k === "security") {
     body = <SecurityPanel />;
-  }
   } else if (k === "addresses") {
     body = (
       <div className="space-y-2">
