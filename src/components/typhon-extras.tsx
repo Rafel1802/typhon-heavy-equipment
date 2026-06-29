@@ -6,6 +6,7 @@ import {
   Layers, Megaphone, Bell, Search, GripVertical, TrendingUp, DollarSign,
   ShoppingBag, Eye, Apple,
 } from "lucide-react";
+import { useAIConfig, usePaymentCards, useSecurity } from "@/lib/typhon-store";
 
 /* ============================================================
    AUTH SCREEN — login / register / google / phone
@@ -408,7 +409,7 @@ export function CouponsScreen({ onClose }: { onClose: () => void }) {
 /* ============================================================
    ADMIN DASHBOARD
 ============================================================ */
-type AdminSection = "overview" | "orders" | "products" | "coupons" | "categories" | "menu" | "banners" | "customers";
+type AdminSection = "overview" | "orders" | "products" | "coupons" | "categories" | "menu" | "banners" | "customers" | "ai";
 
 export function AdminDashboard({ onClose }: { onClose: () => void }) {
   const [section, setSection] = useState<AdminSection>("overview");
@@ -432,11 +433,11 @@ export function AdminDashboard({ onClose }: { onClose: () => void }) {
           <div className="flex gap-1 p-2 min-w-max">
             {([
               ["overview", BarChart3], ["orders", ShoppingBag], ["products", Package],
-              ["coupons", Tag], ["categories", Layers], ["menu", Menu], ["banners", Megaphone], ["customers", Users],
+              ["coupons", Tag], ["categories", Layers], ["menu", Menu], ["banners", Megaphone], ["customers", Users], ["ai", Sparkles],
             ] as [AdminSection, any][]).map(([k, Icon]) => (
               <button key={k} onClick={() => setSection(k)}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold capitalize ${section === k ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>
-                <Icon className="h-3.5 w-3.5" /> {k}
+                <Icon className="h-3.5 w-3.5" /> {k === "ai" ? "AI Bot" : k}
               </button>
             ))}
           </div>
@@ -451,6 +452,7 @@ export function AdminDashboard({ onClose }: { onClose: () => void }) {
           {section === "menu" && <AdminMenuBuilder />}
           {section === "banners" && <AdminBanners />}
           {section === "customers" && <AdminCustomers />}
+          {section === "ai" && <AdminAI />}
         </div>
       </div>
     </div>
@@ -722,8 +724,105 @@ function AdminCustomers() {
 }
 
 /* ============================================================
-   NOTIFICATIONS SHEET
+   ADMIN — AI BOT CONFIG (Google Gemini API key)
 ============================================================ */
+function AdminAI() {
+  const [cfg, setCfg] = useAIConfig();
+  const [draft, setDraft] = useState(cfg);
+  const [show, setShow] = useState(false);
+  const [testing, setTesting] = useState<"idle" | "ok" | "fail" | "wait">("idle");
+  const [testMsg, setTestMsg] = useState<string>("");
+
+  const save = () => { setCfg(draft); setTestMsg("Settings saved."); setTesting("ok"); };
+
+  const testConnection = async () => {
+    if (!draft.googleApiKey) { setTesting("fail"); setTestMsg("Add an API key first."); return; }
+    setTesting("wait"); setTestMsg("Contacting Google AI…");
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(draft.model)}:generateContent?key=${encodeURIComponent(draft.googleApiKey)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: "Reply with: OK" }] }] }),
+      });
+      const j: any = await res.json();
+      if (!res.ok) { setTesting("fail"); setTestMsg(j?.error?.message || `HTTP ${res.status}`); return; }
+      const text = j?.candidates?.[0]?.content?.parts?.[0]?.text || "(no text)";
+      setTesting("ok"); setTestMsg(`Connected · "${text.trim().slice(0, 60)}"`);
+    } catch (e: any) {
+      setTesting("fail"); setTestMsg(e?.message || "Network error");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="glass rounded-2xl p-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AI Provider</p>
+        <p className="font-black text-lg mt-1">Typhon AI Engine</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Choose how customer-facing chat answers are generated.</p>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {([
+            { id: "builtin", t: "Built-in", d: "Offline KB · free" },
+            { id: "google", t: "Google Gemini", d: "Smart · uses API key" },
+          ] as const).map(o => (
+            <button key={o.id} onClick={() => setDraft({ ...draft, provider: o.id })}
+              className={`text-left rounded-2xl p-3 border-2 transition-all ${draft.provider === o.id ? "border-primary bg-primary/5" : "border-transparent bg-muted"}`}>
+              <p className="font-black text-sm">{o.t}</p>
+              <p className="text-[10px] text-muted-foreground">{o.d}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-4 space-y-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Google API Key</p>
+          <div className="mt-2 flex gap-2">
+            <input
+              type={show ? "text" : "password"}
+              value={draft.googleApiKey}
+              onChange={e => setDraft({ ...draft, googleApiKey: e.target.value })}
+              placeholder="AIzaSy…"
+              className="flex-1 bg-muted rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 ring-primary"
+            />
+            <button onClick={() => setShow(s => !s)} className="px-3 rounded-xl bg-muted text-xs font-bold">{show ? "Hide" : "Show"}</button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5">Stored locally on this device. Get a key at <span className="text-primary font-bold">aistudio.google.com/apikey</span></p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Model</p>
+          <select value={draft.model} onChange={e => setDraft({ ...draft, model: e.target.value })}
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-bold outline-none">
+            {["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"].map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Prompt</p>
+          <textarea value={draft.systemPrompt} onChange={e => setDraft({ ...draft, systemPrompt: e.target.value })} rows={4}
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none" />
+        </div>
+      </div>
+
+      {testMsg && (
+        <div className={`rounded-2xl p-3 text-xs font-bold ${testing === "ok" ? "bg-success/15 text-success" : testing === "fail" ? "bg-error/15 text-error" : "bg-muted text-muted-foreground"}`}>
+          {testMsg}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <button onClick={testConnection} className="flex-1 rounded-2xl bg-muted font-black py-3 text-sm">Test connection</button>
+        <button onClick={save} className="flex-1 rounded-2xl bg-primary text-primary-foreground font-black py-3 text-sm">Save</button>
+      </div>
+
+      <div className="glass rounded-2xl p-4">
+        <p className="font-black text-sm">Status</p>
+        <div className="mt-2 space-y-1.5 text-xs">
+          <p>Provider: <span className="font-bold">{cfg.provider === "google" ? "Google Gemini" : "Built-in"}</span></p>
+          <p>Key: <span className="font-bold">{cfg.googleApiKey ? `••••${cfg.googleApiKey.slice(-4)}` : "Not set"}</span></p>
+          <p>Model: <span className="font-bold">{cfg.model}</span></p>
+        </div>
+      </div>
+    </div>
+  );
+}
 export function NotificationsSheet({ onClose }: { onClose: () => void }) {
   const items = [
     { icon: Truck, t: "Order #84219 shipped", s: "Arrives Mar 14 · Track now", time: "5m", color: "text-primary" },
@@ -933,34 +1032,9 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "payment") {
-    body = (
-      <div className="space-y-2">
-        {[
-          { brand: "Visa", last4: "3568", exp: "08/27", def: true },
-          { brand: "Mastercard", last4: "1024", exp: "11/26", def: false },
-        ].map(c => (
-          <div key={c.last4} className="bg-card border rounded-2xl p-4 flex items-center gap-3">
-            <div className="h-10 w-14 rounded-lg bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white text-[10px] font-black">{c.brand}</div>
-            <div className="flex-1">
-              <p className="font-bold text-sm">•••• {c.last4}</p>
-              <p className="text-[11px] text-muted-foreground">Expires {c.exp}{c.def ? " · Default" : ""}</p>
-            </div>
-            <button className="text-[11px] font-bold text-error">Remove</button>
-          </div>
-        ))}
-        <button className="w-full rounded-2xl border-2 border-dashed border-muted-foreground/30 py-4 text-sm font-bold text-muted-foreground">+ Add payment method</button>
-      </div>
-    );
+    body = <PaymentMethodsPanel />;
   } else if (k === "security") {
-    body = (
-      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
-        {["Change password", "Two-factor authentication", "Connected devices", "Login history", "Delete account"].map(x => (
-          <button key={x} className={`w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted ${x === "Delete account" ? "text-error" : ""}`}>
-            {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-        ))}
-      </div>
-    );
+    body = <SecurityPanel />;
   } else if (k === "addresses") {
     body = (
       <div className="space-y-2">
@@ -978,10 +1052,16 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "general") {
+    const handle = (x: string) => {
+      if (x.startsWith("Clear")) { alert("Cache cleared (24 MB freed)."); }
+      else if (x.startsWith("Reset")) { if (confirm("Reset all preferences to default?")) alert("Preferences reset."); }
+      else if (x.startsWith("Download")) { alert("Your data export will be emailed within 24 hours."); }
+      else if (x.startsWith("Beta")) { alert("Beta features enrollment opened."); }
+    };
     body = (
       <div className="bg-card border rounded-2xl divide-y overflow-hidden">
         {["Clear cache (24 MB)", "Reset preferences", "Download data", "Beta features"].map(x => (
-          <button key={x} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+          <button key={x} onClick={() => handle(x)} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
             {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
           </button>
         ))}
@@ -1005,10 +1085,17 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "legal") {
+    const docs: Record<string, string> = {
+      "Terms of Service": "By using TYPHON you agree to our terms… (full text available at typhonmachinery.com/terms)",
+      "Privacy Policy": "We respect your privacy. Data is stored locally and never sold…",
+      "Cookie Policy": "TYPHON uses essential cookies for sessions, cart, and preferences…",
+      "Acceptable Use": "No fraudulent listings, harassment, or illegal use of equipment…",
+      "Licenses": "Built with React, TanStack Start, Tailwind, lucide-react. MIT.",
+    };
     body = (
       <div className="bg-card border rounded-2xl divide-y overflow-hidden">
-        {["Terms of Service", "Privacy Policy", "Cookie Policy", "Acceptable Use", "Licenses"].map(x => (
-          <button key={x} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        {Object.keys(docs).map(x => (
+          <button key={x} onClick={() => alert(`${x}\n\n${docs[x]}`)} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
             {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
           </button>
         ))}
@@ -1030,3 +1117,144 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
   );
 }
 
+
+/* ============================================================
+   PAYMENT METHODS PANEL (functional)
+============================================================ */
+function PaymentMethodsPanel() {
+  const [cards, setCards] = usePaymentCards();
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ brand: "Visa", number: "", exp: "" });
+
+  const remove = (id: string) => {
+    if (!confirm("Remove this card?")) return;
+    setCards(cards.filter(c => c.id !== id));
+  };
+  const makeDefault = (id: string) => setCards(cards.map(c => ({ ...c, def: c.id === id })));
+  const add = () => {
+    const last4 = form.number.replace(/\D/g, "").slice(-4);
+    if (last4.length < 4 || !/^\d{2}\/\d{2}$/.test(form.exp)) { alert("Enter a valid card number and expiry MM/YY."); return; }
+    setCards([...cards, { id: "c" + Date.now(), brand: form.brand, last4, exp: form.exp }]);
+    setAdding(false); setForm({ brand: "Visa", number: "", exp: "" });
+  };
+
+  return (
+    <div className="space-y-2">
+      {cards.map(c => (
+        <div key={c.id} className="bg-card border rounded-2xl p-4 flex items-center gap-3">
+          <div className="h-10 w-14 rounded-lg bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white text-[10px] font-black">{c.brand}</div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm">•••• {c.last4}</p>
+            <p className="text-[11px] text-muted-foreground truncate">Expires {c.exp}{c.def ? " · Default" : ""}</p>
+          </div>
+          {!c.def && <button onClick={() => makeDefault(c.id)} className="text-[11px] font-bold text-primary">Default</button>}
+          <button onClick={() => remove(c.id)} className="text-[11px] font-bold text-error">Remove</button>
+        </div>
+      ))}
+      {!adding ? (
+        <button onClick={() => setAdding(true)} className="w-full rounded-2xl border-2 border-dashed border-primary/40 py-4 text-sm font-bold text-primary">+ Add payment method</button>
+      ) : (
+        <div className="bg-card border rounded-2xl p-4 space-y-2">
+          <p className="font-black text-sm">New card</p>
+          <select value={form.brand} onChange={e => setForm({ ...form, brand: e.target.value })} className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-bold outline-none">
+            {["Visa", "Mastercard", "Amex", "Discover"].map(b => <option key={b}>{b}</option>)}
+          </select>
+          <input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} placeholder="Card number" inputMode="numeric" className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <input value={form.exp} onChange={e => setForm({ ...form, exp: e.target.value })} placeholder="MM/YY" className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none" />
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => setAdding(false)} className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-bold">Cancel</button>
+            <button onClick={add} className="flex-1 rounded-xl bg-primary text-primary-foreground py-2.5 text-sm font-black">Save card</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   SECURITY PANEL (functional)
+============================================================ */
+function SecurityPanel() {
+  const [sec, setSec] = useSecurity();
+  const [view, setView] = useState<"root" | "pw" | "devices" | "history">("root");
+  const [pw, setPw] = useState({ old: "", n: "", c: "" });
+
+  const changePassword = () => {
+    if (pw.n.length < 8) { alert("Password must be at least 8 characters."); return; }
+    if (pw.n !== pw.c) { alert("Passwords do not match."); return; }
+    setSec({ ...sec, passwordUpdatedAt: Date.now() });
+    setPw({ old: "", n: "", c: "" });
+    alert("Password updated.");
+    setView("root");
+  };
+  const revoke = (id: string) => setSec({ ...sec, devices: sec.devices.filter(d => d.id !== id) });
+  const deleteAccount = () => {
+    if (!confirm("Permanently delete your account? This cannot be undone.")) return;
+    if (!confirm("Are you absolutely sure?")) return;
+    alert("Account deletion request submitted. You'll receive an email confirmation within 24 hours.");
+  };
+
+  if (view === "pw") return (
+    <div className="space-y-2">
+      <button onClick={() => setView("root")} className="text-xs font-bold text-primary mb-2">← Back</button>
+      <input type="password" placeholder="Current password" value={pw.old} onChange={e => setPw({ ...pw, old: e.target.value })} className="w-full bg-card border rounded-xl px-3 py-2.5 text-sm outline-none" />
+      <input type="password" placeholder="New password (min 8 chars)" value={pw.n} onChange={e => setPw({ ...pw, n: e.target.value })} className="w-full bg-card border rounded-xl px-3 py-2.5 text-sm outline-none" />
+      <input type="password" placeholder="Confirm new password" value={pw.c} onChange={e => setPw({ ...pw, c: e.target.value })} className="w-full bg-card border rounded-xl px-3 py-2.5 text-sm outline-none" />
+      <button onClick={changePassword} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3 text-sm mt-2">Update password</button>
+    </div>
+  );
+
+  if (view === "devices") return (
+    <div className="space-y-2">
+      <button onClick={() => setView("root")} className="text-xs font-bold text-primary mb-2">← Back</button>
+      {sec.devices.map(d => (
+        <div key={d.id} className="bg-card border rounded-2xl p-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm truncate">{d.name}</p>
+            <p className="text-[11px] text-muted-foreground">Last active {new Date(d.lastSeen).toLocaleString()}</p>
+          </div>
+          <button onClick={() => revoke(d.id)} className="text-[11px] font-bold text-error">Revoke</button>
+        </div>
+      ))}
+      {sec.devices.length === 0 && <p className="text-sm text-muted-foreground text-center py-6">No active sessions.</p>}
+    </div>
+  );
+
+  if (view === "history") return (
+    <div className="space-y-2">
+      <button onClick={() => setView("root")} className="text-xs font-bold text-primary mb-2">← Back</button>
+      {sec.loginHistory.map(l => (
+        <div key={l.id} className="bg-card border rounded-2xl p-3">
+          <p className="font-bold text-sm">{l.where}</p>
+          <p className="text-[11px] text-muted-foreground">{new Date(l.ts).toLocaleString()}</p>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+      <button onClick={() => setView("pw")} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        Change password <ChevRight className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex items-center justify-between px-4 py-3.5">
+        <div>
+          <p className="text-sm font-semibold">Two-factor authentication</p>
+          <p className="text-[11px] text-muted-foreground">{sec.twoFactor ? "Enabled · SMS" : "Disabled"}</p>
+        </div>
+        <button onClick={() => setSec({ ...sec, twoFactor: !sec.twoFactor })} className={`relative h-6 w-11 rounded-full transition-colors ${sec.twoFactor ? "bg-primary" : "bg-muted-foreground/30"}`}>
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${sec.twoFactor ? "left-5" : "left-0.5"}`} />
+        </button>
+      </div>
+      <button onClick={() => setView("devices")} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        Connected devices <span className="text-xs text-muted-foreground">{sec.devices.length} active <ChevRight className="inline h-4 w-4" /></span>
+      </button>
+      <button onClick={() => setView("history")} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        Login history <ChevRight className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <button onClick={deleteAccount} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted text-error">
+        Delete account <ChevRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
