@@ -408,7 +408,7 @@ export function CouponsScreen({ onClose }: { onClose: () => void }) {
 /* ============================================================
    ADMIN DASHBOARD
 ============================================================ */
-type AdminSection = "overview" | "orders" | "products" | "coupons" | "categories" | "menu" | "banners" | "customers";
+type AdminSection = "overview" | "orders" | "products" | "coupons" | "categories" | "menu" | "banners" | "customers" | "ai";
 
 export function AdminDashboard({ onClose }: { onClose: () => void }) {
   const [section, setSection] = useState<AdminSection>("overview");
