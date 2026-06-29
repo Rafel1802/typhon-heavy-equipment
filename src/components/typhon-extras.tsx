@@ -766,31 +766,37 @@ export function NotificationsSheet({ onClose }: { onClose: () => void }) {
 import { Globe, Bell as BellIcon, Lock as LockIcon, HelpCircle, FileText as FileText2, Info, ChevronRight as ChevRight, ArrowLeft } from "lucide-react";
 
 export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; onSignOut: () => void }) {
-  const groups: { title: string; rows: { icon: any; label: string; trail?: string; danger?: boolean }[] }[] = [
+  const [active, setActive] = useState<string | null>(null);
+  const [notif, setNotif] = useState({ orders: true, promos: true, ai: false, price: true });
+  const [privacy, setPrivacy] = useState({ personalized: true, analytics: false, location: true });
+  const [appearance, setAppearance] = useState<"liquid" | "classic" | "high">("liquid");
+  const [country, setCountry] = useState({ country: "United States", lang: "English", currency: "USD" });
+
+  const groups: { title: string; rows: { icon: any; label: string; trail?: string; key: string }[] }[] = [
     {
       title: "Account and security",
       rows: [
-        { icon: MapPin, label: "My addresses", trail: "2 saved" },
-        { icon: ShieldCheck, label: "Account and security", trail: "" },
-        { icon: CreditCard, label: "Payment settings", trail: "Visa •••• 3568" },
-        { icon: Globe, label: "Country / language / currency", trail: "US · EN · USD" },
+        { icon: MapPin, label: "My addresses", trail: "2 saved", key: "addresses" },
+        { icon: ShieldCheck, label: "Account and security", trail: "", key: "security" },
+        { icon: CreditCard, label: "Payment settings", trail: "Visa •••• 3568", key: "payment" },
+        { icon: Globe, label: "Country / language / currency", trail: `${country.country.split(" ")[0]} · EN · ${country.currency}`, key: "country" },
       ],
     },
     {
       title: "Function",
       rows: [
-        { icon: Sparkles, label: "General", trail: "" },
-        { icon: BellIcon, label: "Notifications", trail: "On" },
-        { icon: LockIcon, label: "Privacy", trail: "" },
-        { icon: ImageIcon, label: "Appearance", trail: "Liquid Glass" },
+        { icon: Sparkles, label: "General", trail: "", key: "general" },
+        { icon: BellIcon, label: "Notifications", trail: Object.values(notif).filter(Boolean).length + " on", key: "notif" },
+        { icon: LockIcon, label: "Privacy", trail: "", key: "privacy" },
+        { icon: ImageIcon, label: "Appearance", trail: appearance === "liquid" ? "Liquid Glass" : appearance === "classic" ? "Classic" : "High contrast", key: "appearance" },
       ],
     },
     {
       title: "About",
       rows: [
-        { icon: HelpCircle, label: "Help and feedback", trail: "" },
-        { icon: Info, label: "About TYPHON", trail: "v1.0.0" },
-        { icon: FileText2, label: "Legal Agreement", trail: "" },
+        { icon: HelpCircle, label: "Help and feedback", trail: "", key: "help" },
+        { icon: Info, label: "About TYPHON", trail: "v1.0.0", key: "about" },
+        { icon: FileText2, label: "Legal Agreement", trail: "", key: "legal" },
       ],
     },
   ];
@@ -798,7 +804,6 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
   return (
     <div className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-3 animate-float-in" onClick={onClose}>
       <div onClick={e => e.stopPropagation()} className="w-full max-w-[420px] bg-background rounded-[36px] border shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: "90vh" }}>
-        {/* Header */}
         <div className="px-4 py-4 border-b flex items-center justify-between shrink-0">
           <button onClick={onClose} className="h-9 w-9 rounded-full bg-muted grid place-items-center">
             <ArrowLeft className="h-4 w-4" />
@@ -807,14 +812,13 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
           <button className="h-9 w-9 rounded-full bg-muted grid place-items-center text-xs">···</button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto no-scrollbar px-3 py-4 space-y-4 bg-muted/30">
           {groups.map(g => (
             <div key={g.title}>
               <p className="text-[11px] font-black tracking-wide text-muted-foreground uppercase px-3 mb-2">{g.title}</p>
               <div className="bg-card border rounded-2xl overflow-hidden divide-y">
                 {g.rows.map(r => (
-                  <button key={r.label} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted transition-colors">
+                  <button key={r.label} onClick={() => setActive(r.key)} className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-muted transition-colors">
                     <div className="h-8 w-8 rounded-xl bg-primary/10 grid place-items-center text-primary">
                       <r.icon className="h-4 w-4" />
                     </div>
@@ -826,16 +830,203 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
               </div>
             </div>
           ))}
-
           <div className="h-2" />
         </div>
 
-        {/* Footer actions */}
         <div className="p-4 border-t flex gap-2 shrink-0 bg-background">
-          <button className="flex-1 rounded-2xl bg-muted text-foreground font-bold py-3 text-sm">Switch account</button>
+          <button onClick={() => { onSignOut(); }} className="flex-1 rounded-2xl bg-muted text-foreground font-bold py-3 text-sm">Switch account</button>
           <button onClick={onSignOut} className="flex-1 rounded-2xl bg-error/10 text-error font-black py-3 text-sm">Log out</button>
         </div>
+      </div>
+
+      {active && (
+        <SettingsSubSheet
+          k={active}
+          onClose={() => setActive(null)}
+          notif={notif} setNotif={setNotif}
+          privacy={privacy} setPrivacy={setPrivacy}
+          appearance={appearance} setAppearance={setAppearance}
+          country={country} setCountry={setCountry}
+        />
+      )}
+    </div>
+  );
+}
+
+function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, appearance, setAppearance, country, setCountry }: any) {
+  const titles: Record<string, string> = {
+    addresses: "My addresses", security: "Account & security", payment: "Payment methods",
+    country: "Region & language", general: "General", notif: "Notifications", privacy: "Privacy",
+    appearance: "Appearance", help: "Help & feedback", about: "About TYPHON", legal: "Legal agreements",
+  };
+  const Row = ({ label, value, on, onToggle }: any) => (
+    <div className="flex items-center justify-between px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold">{label}</p>
+        {value && <p className="text-[11px] text-muted-foreground">{value}</p>}
+      </div>
+      {typeof on === "boolean" && (
+        <button onClick={onToggle} className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted-foreground/30"}`}>
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? "left-5" : "left-0.5"}`} />
+        </button>
+      )}
+    </div>
+  );
+
+  let body: React.ReactNode = null;
+  if (k === "notif") {
+    body = (
+      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+        <Row label="Order updates" value="Shipping, delivery, status" on={notif.orders} onToggle={() => setNotif({ ...notif, orders: !notif.orders })} />
+        <Row label="Promotions & deals" value="Coupons, flash sales" on={notif.promos} onToggle={() => setNotif({ ...notif, promos: !notif.promos })} />
+        <Row label="AI assistant tips" value="Smart suggestions" on={notif.ai} onToggle={() => setNotif({ ...notif, ai: !notif.ai })} />
+        <Row label="Price drop alerts" value="Wishlist items" on={notif.price} onToggle={() => setNotif({ ...notif, price: !notif.price })} />
+      </div>
+    );
+  } else if (k === "privacy") {
+    body = (
+      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+        <Row label="Personalized recommendations" on={privacy.personalized} onToggle={() => setPrivacy({ ...privacy, personalized: !privacy.personalized })} />
+        <Row label="Share usage analytics" on={privacy.analytics} onToggle={() => setPrivacy({ ...privacy, analytics: !privacy.analytics })} />
+        <Row label="Location services" on={privacy.location} onToggle={() => setPrivacy({ ...privacy, location: !privacy.location })} />
+      </div>
+    );
+  } else if (k === "appearance") {
+    const opts = [
+      { id: "liquid", name: "Liquid Glass", desc: "Translucent blur, iOS feel" },
+      { id: "classic", name: "Classic", desc: "Solid surfaces, minimal blur" },
+      { id: "high", name: "High Contrast", desc: "Maximum readability" },
+    ];
+    body = (
+      <div className="space-y-2">
+        {opts.map(o => (
+          <button key={o.id} onClick={() => setAppearance(o.id)} className={`w-full text-left bg-card border rounded-2xl p-4 flex items-center gap-3 ${appearance === o.id ? "ring-2 ring-primary" : ""}`}>
+            <div className={`h-10 w-10 rounded-xl ${o.id === "liquid" ? "bg-gradient-to-br from-primary to-blue-700" : o.id === "classic" ? "bg-muted" : "bg-foreground"}`} />
+            <div className="flex-1">
+              <p className="font-bold text-sm">{o.name}</p>
+              <p className="text-[11px] text-muted-foreground">{o.desc}</p>
+            </div>
+            {appearance === o.id && <div className="h-5 w-5 rounded-full bg-primary text-primary-foreground grid place-items-center text-[10px]">✓</div>}
+          </button>
+        ))}
+      </div>
+    );
+  } else if (k === "country") {
+    body = (
+      <div className="space-y-3">
+        {[
+          ["Country / Region", "country", ["United States", "Canada", "Mexico", "United Kingdom"]],
+          ["Language", "lang", ["English", "Español", "Français"]],
+          ["Currency", "currency", ["USD", "CAD", "EUR", "GBP"]],
+        ].map(([label, key, opts]: any) => (
+          <div key={key}>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{label}</p>
+            <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+              {opts.map((o: string) => (
+                <button key={o} onClick={() => setCountry({ ...country, [key]: o })} className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
+                  {o} {country[key] === o && <span className="text-primary">✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  } else if (k === "payment") {
+    body = (
+      <div className="space-y-2">
+        {[
+          { brand: "Visa", last4: "3568", exp: "08/27", def: true },
+          { brand: "Mastercard", last4: "1024", exp: "11/26", def: false },
+        ].map(c => (
+          <div key={c.last4} className="bg-card border rounded-2xl p-4 flex items-center gap-3">
+            <div className="h-10 w-14 rounded-lg bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white text-[10px] font-black">{c.brand}</div>
+            <div className="flex-1">
+              <p className="font-bold text-sm">•••• {c.last4}</p>
+              <p className="text-[11px] text-muted-foreground">Expires {c.exp}{c.def ? " · Default" : ""}</p>
+            </div>
+            <button className="text-[11px] font-bold text-error">Remove</button>
+          </div>
+        ))}
+        <button className="w-full rounded-2xl border-2 border-dashed border-muted-foreground/30 py-4 text-sm font-bold text-muted-foreground">+ Add payment method</button>
+      </div>
+    );
+  } else if (k === "security") {
+    body = (
+      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+        {["Change password", "Two-factor authentication", "Connected devices", "Login history", "Delete account"].map(x => (
+          <button key={x} className={`w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted ${x === "Delete account" ? "text-error" : ""}`}>
+            {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        ))}
+      </div>
+    );
+  } else if (k === "addresses") {
+    body = (
+      <div className="space-y-2">
+        <div className="bg-card border rounded-2xl p-4">
+          <p className="text-xs font-bold text-primary">Default · Home</p>
+          <p className="font-bold text-sm mt-1">John Miller</p>
+          <p className="text-[11px] text-muted-foreground">2840 Industrial Blvd, Dallas, TX 75207</p>
+        </div>
+        <div className="bg-card border rounded-2xl p-4">
+          <p className="text-xs font-bold">Job Site</p>
+          <p className="font-bold text-sm mt-1">Riverside Project</p>
+          <p className="text-[11px] text-muted-foreground">5500 Trinity River Rd, Fort Worth, TX 76104</p>
+        </div>
+        <button className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3.5">+ Add new address</button>
+      </div>
+    );
+  } else if (k === "general") {
+    body = (
+      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+        {["Clear cache (24 MB)", "Reset preferences", "Download data", "Beta features"].map(x => (
+          <button key={x} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+            {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        ))}
+      </div>
+    );
+  } else if (k === "help") {
+    body = (
+      <div className="space-y-2">
+        <a href="tel:+18008974661" className="block bg-card border rounded-2xl p-4 font-bold text-sm">📞 Call +1 (800) 897-466</a>
+        <a href="mailto:support@typhonmachinery.com" className="block bg-card border rounded-2xl p-4 font-bold text-sm">✉️ support@typhonmachinery.com</a>
+        <a href="https://wa.me/18008974661" target="_blank" rel="noopener noreferrer" className="block bg-card border rounded-2xl p-4 font-bold text-sm">💬 Chat on WhatsApp</a>
+      </div>
+    );
+  } else if (k === "about") {
+    body = (
+      <div className="text-center py-6">
+        <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-white font-black text-2xl">T</div>
+        <p className="font-black text-xl mt-3">TYPHON</p>
+        <p className="text-xs text-muted-foreground">Version 1.0.0 · Build 2026.06</p>
+        <p className="text-[11px] text-muted-foreground mt-4 px-6">Premium American heavy machinery, delivered with intelligence.</p>
+      </div>
+    );
+  } else if (k === "legal") {
+    body = (
+      <div className="bg-card border rounded-2xl divide-y overflow-hidden">
+        {["Terms of Service", "Privacy Policy", "Cookie Policy", "Acceptable Use", "Licenses"].map(x => (
+          <button key={x} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+            {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 grid place-items-center p-3 animate-float-in" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-[420px] bg-background rounded-[36px] border shadow-2xl overflow-hidden flex flex-col" style={{ maxHeight: "85vh" }}>
+        <div className="px-4 py-4 border-b flex items-center justify-between shrink-0">
+          <button onClick={onClose} className="h-9 w-9 rounded-full bg-muted grid place-items-center"><ArrowLeft className="h-4 w-4" /></button>
+          <h2 className="font-black text-lg">{titles[k]}</h2>
+          <span className="h-9 w-9" />
+        </div>
+        <div className="flex-1 overflow-y-auto no-scrollbar p-4 bg-muted/30">{body}</div>
       </div>
     </div>
   );
 }
+
