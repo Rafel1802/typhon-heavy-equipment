@@ -723,8 +723,105 @@ function AdminCustomers() {
 }
 
 /* ============================================================
-   NOTIFICATIONS SHEET
+   ADMIN — AI BOT CONFIG (Google Gemini API key)
 ============================================================ */
+function AdminAI() {
+  const [cfg, setCfg] = useAIConfig();
+  const [draft, setDraft] = useState(cfg);
+  const [show, setShow] = useState(false);
+  const [testing, setTesting] = useState<"idle" | "ok" | "fail" | "wait">("idle");
+  const [testMsg, setTestMsg] = useState<string>("");
+
+  const save = () => { setCfg(draft); setTestMsg("Settings saved."); setTesting("ok"); };
+
+  const testConnection = async () => {
+    if (!draft.googleApiKey) { setTesting("fail"); setTestMsg("Add an API key first."); return; }
+    setTesting("wait"); setTestMsg("Contacting Google AI…");
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(draft.model)}:generateContent?key=${encodeURIComponent(draft.googleApiKey)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: "Reply with: OK" }] }] }),
+      });
+      const j: any = await res.json();
+      if (!res.ok) { setTesting("fail"); setTestMsg(j?.error?.message || `HTTP ${res.status}`); return; }
+      const text = j?.candidates?.[0]?.content?.parts?.[0]?.text || "(no text)";
+      setTesting("ok"); setTestMsg(`Connected · "${text.trim().slice(0, 60)}"`);
+    } catch (e: any) {
+      setTesting("fail"); setTestMsg(e?.message || "Network error");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="glass rounded-2xl p-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">AI Provider</p>
+        <p className="font-black text-lg mt-1">Typhon AI Engine</p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">Choose how customer-facing chat answers are generated.</p>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {([
+            { id: "builtin", t: "Built-in", d: "Offline KB · free" },
+            { id: "google", t: "Google Gemini", d: "Smart · uses API key" },
+          ] as const).map(o => (
+            <button key={o.id} onClick={() => setDraft({ ...draft, provider: o.id })}
+              className={`text-left rounded-2xl p-3 border-2 transition-all ${draft.provider === o.id ? "border-primary bg-primary/5" : "border-transparent bg-muted"}`}>
+              <p className="font-black text-sm">{o.t}</p>
+              <p className="text-[10px] text-muted-foreground">{o.d}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl p-4 space-y-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Google API Key</p>
+          <div className="mt-2 flex gap-2">
+            <input
+              type={show ? "text" : "password"}
+              value={draft.googleApiKey}
+              onChange={e => setDraft({ ...draft, googleApiKey: e.target.value })}
+              placeholder="AIzaSy…"
+              className="flex-1 bg-muted rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:ring-2 ring-primary"
+            />
+            <button onClick={() => setShow(s => !s)} className="px-3 rounded-xl bg-muted text-xs font-bold">{show ? "Hide" : "Show"}</button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5">Stored locally on this device. Get a key at <span className="text-primary font-bold">aistudio.google.com/apikey</span></p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Model</p>
+          <select value={draft.model} onChange={e => setDraft({ ...draft, model: e.target.value })}
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-bold outline-none">
+            {["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"].map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Prompt</p>
+          <textarea value={draft.systemPrompt} onChange={e => setDraft({ ...draft, systemPrompt: e.target.value })} rows={4}
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none" />
+        </div>
+      </div>
+
+      {testMsg && (
+        <div className={`rounded-2xl p-3 text-xs font-bold ${testing === "ok" ? "bg-success/15 text-success" : testing === "fail" ? "bg-error/15 text-error" : "bg-muted text-muted-foreground"}`}>
+          {testMsg}
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <button onClick={testConnection} className="flex-1 rounded-2xl bg-muted font-black py-3 text-sm">Test connection</button>
+        <button onClick={save} className="flex-1 rounded-2xl bg-primary text-primary-foreground font-black py-3 text-sm">Save</button>
+      </div>
+
+      <div className="glass rounded-2xl p-4">
+        <p className="font-black text-sm">Status</p>
+        <div className="mt-2 space-y-1.5 text-xs">
+          <p>Provider: <span className="font-bold">{cfg.provider === "google" ? "Google Gemini" : "Built-in"}</span></p>
+          <p>Key: <span className="font-bold">{cfg.googleApiKey ? `••••${cfg.googleApiKey.slice(-4)}` : "Not set"}</span></p>
+          <p>Model: <span className="font-bold">{cfg.model}</span></p>
+        </div>
+      </div>
+    </div>
+  );
+}
 export function NotificationsSheet({ onClose }: { onClose: () => void }) {
   const items = [
     { icon: Truck, t: "Order #84219 shipped", s: "Arrives Mar 14 · Track now", time: "5m", color: "text-primary" },
