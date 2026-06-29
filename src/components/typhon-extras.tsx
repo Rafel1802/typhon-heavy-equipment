@@ -1085,10 +1085,17 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "legal") {
+    const docs: Record<string, string> = {
+      "Terms of Service": "By using TYPHON you agree to our terms… (full text available at typhonmachinery.com/terms)",
+      "Privacy Policy": "We respect your privacy. Data is stored locally and never sold…",
+      "Cookie Policy": "TYPHON uses essential cookies for sessions, cart, and preferences…",
+      "Acceptable Use": "No fraudulent listings, harassment, or illegal use of equipment…",
+      "Licenses": "Built with React, TanStack Start, Tailwind, lucide-react. MIT.",
+    };
     body = (
       <div className="bg-card border rounded-2xl divide-y overflow-hidden">
-        {["Terms of Service", "Privacy Policy", "Cookie Policy", "Acceptable Use", "Licenses"].map(x => (
-          <button key={x} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
+        {Object.keys(docs).map(x => (
+          <button key={x} onClick={() => alert(`${x}\n\n${docs[x]}`)} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted">
             {x} <ChevRight className="h-4 w-4 text-muted-foreground" />
           </button>
         ))}
