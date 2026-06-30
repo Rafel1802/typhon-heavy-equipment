@@ -751,11 +751,11 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       <div className="px-5 pb-3 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" style={{ animation: "pulse-dot 1.6s infinite" }} />
-            Online · Equipment Expert
+            <span className={`h-1.5 w-1.5 rounded-full inline-block ${aiConnected ? "bg-success" : "bg-warning"}`} style={{ animation: "pulse-dot 1.6s infinite" }} />
+            {aiConnected ? `Gemini · ${aiCfg.model}` : "Built-in mode · Connect Gemini in Admin"}
           </p>
-          <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Typhon AI
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2" title="TYPHON CHAT BOT">
+            <Sparkles className="h-5 w-5 text-primary" /> TYPHON Chat Bot
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -768,9 +768,12 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
         {msgs.map((m, i) => (
           <div key={i} className="space-y-2">
             <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              <div className={`max-w-[82%] rounded-2xl ${m.image ? "p-1.5" : "px-4 py-2.5"} text-sm leading-relaxed ${
                 m.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "glass rounded-bl-sm"
-              }`}>{m.text}</div>
+              }`}>
+                {m.image && <img src={m.image} alt="upload" className="rounded-xl max-h-48 w-auto object-cover mb-1" />}
+                {m.text && <div className={m.image ? "px-2.5 pb-1.5" : ""}>{m.text}</div>}
+              </div>
             </div>
             {m.products && m.products.length > 0 && (
               <div className="space-y-2">
@@ -817,15 +820,28 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       </div>
 
       <div className="px-5 pb-3">
-        <div className="glass-strong rounded-full flex items-center gap-2 pl-4 pr-1.5 py-1.5">
+        {pendingImage && (
+          <div className="mb-2 inline-flex items-center gap-2 glass rounded-2xl p-2 pr-3">
+            <img src={pendingImage} alt="" className="h-12 w-12 rounded-xl object-cover" />
+            <span className="text-xs font-bold">Image ready</span>
+            <button onClick={() => setPendingImage(null)} className="h-6 w-6 rounded-full bg-muted grid place-items-center"><X className="h-3 w-3" /></button>
+          </div>
+        )}
+        <div className="glass-strong rounded-full flex items-center gap-2 pl-2 pr-1.5 py-1.5">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleImagePick(f); e.target.value = ""; }} />
+          <button onClick={() => fileRef.current?.click()} title="Attach image"
+            className="h-9 w-9 rounded-full bg-muted grid place-items-center shrink-0 hover:bg-primary/10 transition-colors">
+            <Camera className="h-4 w-4 text-muted-foreground" />
+          </button>
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Ask anything — products, shipping, financing..." className="flex-1 bg-transparent text-sm outline-none py-1.5" />
-          <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center">
+            placeholder={pendingImage ? "Ask about this image…" : "Ask anything — or attach a photo"} className="flex-1 bg-transparent text-sm outline-none py-1.5 min-w-0" />
+          <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0">
             <Send className="h-4 w-4" />
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground text-center mt-2">
-          Works offline with built-in knowledge · Chat history saved automatically
+          {aiConnected ? "Powered by Google Gemini · image vision enabled" : "Built-in mode · attach Google API key in Admin → AI for smart answers + vision"}
         </p>
       </div>
 
