@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, ArrowLeft, MapPin, Phone, Mail, MessageCircle, Heart, Store, Clock, Wallet, Gift,
   FileText, BadgeCheck, Plus, Trash2, Edit2, Search, ChevronRight, Camera, Share2, Copy,
-  Check, ArrowRight, Banknote, TrendingUp,
+  Check, CheckCircle2, ArrowRight, Banknote, TrendingUp,
 } from "lucide-react";
 import {
   useAddresses, useFollowing, useProfile, useQuotes, useRecentlyViewed, useWallet,
