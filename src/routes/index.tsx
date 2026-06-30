@@ -6,7 +6,7 @@ import {
   Truck, ShieldCheck, Banknote, Headphones, Plus, Minus, X, Send,
   Sun, Moon, ArrowRight, Tag, Zap, MapPin, CheckCircle2, Clock,
   FileText, MessageCircle, Settings, LogOut, BadgeCheck, Filter,
-  Shield, Wallet, CreditCard, RotateCcw, Eye, Gift, Receipt,
+  Shield, Wallet, CreditCard, RotateCcw, Eye, Gift, Receipt, Camera,
 } from "lucide-react";
 
 import excavator from "@/assets/excavator.jpg";
