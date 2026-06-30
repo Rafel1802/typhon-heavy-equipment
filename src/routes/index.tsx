@@ -660,13 +660,15 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
 
   const current = sessions.find(s => s.id === activeId);
   const msgs: AIMsg[] = useMemo(() => (current?.messages ?? []).map(m => ({
-    role: m.role, text: m.text,
+    role: m.role, text: m.text, image: m.image,
     products: m.productIds ? m.productIds.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean) as Product[] : undefined,
   })), [current]);
 
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const prompts = ["Find me a mini excavator", "Show all skid steers", "Shipping to 75201?", "Financing options", "Best for landscaping"];
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const prompts = ["Find me a mini excavator", "Show all skid steers", "Shipping to 75201?", "Financing options", "Identify this machine"];
 
   const pushMsg = (msg: ChatMsg, titleHint?: string) => {
     setSessions(prev => prev.map(s => s.id === activeId
@@ -674,12 +676,26 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       : s));
   };
 
-  const callGemini = async (history: ChatMsg[], userText: string): Promise<string> => {
+  const handleImagePick = (file: File) => {
+    if (file.size > 4 * 1024 * 1024) { alert("Image must be under 4 MB"); return; }
+    const r = new FileReader();
+    r.onload = () => setPendingImage(r.result as string);
+    r.readAsDataURL(file);
+  };
+
+  const callGemini = async (history: ChatMsg[], userText: string, imageDataUrl?: string | null): Promise<string> => {
     const sys = aiCfg.systemPrompt + "\n\nProduct catalog (id · name · brand · price · category):\n" +
       PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const userParts: any[] = [];
+    if (imageDataUrl) {
+      const [meta, data] = imageDataUrl.split(",");
+      const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
+      userParts.push({ inline_data: { mime_type: mime, data } });
+    }
+    userParts.push({ text: userText || "Please analyze this image." });
     const contents = [
-      ...history.filter(m => m.text).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
-      { role: "user", parts: [{ text: userText }] },
+      ...history.filter(m => m.text && !m.image).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
+      { role: "user", parts: userParts },
     ];
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(aiCfg.model)}:generateContent?key=${encodeURIComponent(aiCfg.googleApiKey)}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -692,25 +708,27 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
 
   const send = async (t?: string) => {
     const text = (t ?? input).trim();
-    if (!text || !activeId) return;
-    pushMsg({ role: "user", text, ts: Date.now() }, text);
+    const img = pendingImage;
+    if (!text && !img) return;
+    if (!activeId) return;
+    pushMsg({ role: "user", text: text || (img ? "[image]" : ""), image: img || undefined, ts: Date.now() }, text);
     setInput("");
+    setPendingImage(null);
     setTyping(true);
-    // Always do local product search for cards
-    const local = aiAnswer(text, PRODUCTS);
+    const local = aiAnswer(text || "find equipment", PRODUCTS);
     if (aiConnected) {
       try {
         const history = current?.messages ?? [];
-        const reply = await callGemini(history, text);
-        pushMsg({ role: "ai", text: reply, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        const reply = await callGemini(history, text, img);
+        pushMsg({ role: "ai", text: reply, productIds: img ? undefined : local.products?.map(p => p.id), ts: Date.now() });
       } catch (e: any) {
-        pushMsg({ role: "ai", text: `Gemini error: ${e.message}. Falling back to built-in answer.\n\n${local.text}`, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        pushMsg({ role: "ai", text: `⚠️ AI error: ${e.message}\n\nUsing built-in: ${local.text}`, productIds: local.products?.map(p => p.id), ts: Date.now() });
       } finally {
         setTyping(false);
       }
     } else {
       setTimeout(() => {
-        pushMsg({ role: "ai", text: local.text, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        pushMsg({ role: "ai", text: img ? "I can see your image. Connect Google Gemini in Admin → AI to enable image analysis. Meanwhile: " + local.text : local.text, productIds: local.products?.map(p => p.id), ts: Date.now() });
         setTyping(false);
       }, 450);
     }
