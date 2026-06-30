@@ -78,7 +78,7 @@ export function useLocal<T>(key: string, initial: T) {
 
 export type Banner = { id: string; title: string; subtitle: string; cta: string; image: string; live: boolean };
 export type Profile = { name: string; company: string; location: string; initials: string; avatar?: string; cover?: string; email: string; phone: string };
-export type ChatMsg = { role: "ai" | "user"; text: string; productIds?: string[]; ts: number };
+export type ChatMsg = { role: "ai" | "user"; text: string; productIds?: string[]; image?: string; ts: number };
 export type ChatSession = { id: string; title: string; createdAt: number; messages: ChatMsg[] };
 
 export const STORE_KEYS = K;

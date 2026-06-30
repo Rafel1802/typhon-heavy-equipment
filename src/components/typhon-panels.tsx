@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   X, ArrowLeft, MapPin, Phone, Mail, MessageCircle, Heart, Store, Clock, Wallet, Gift,
   FileText, BadgeCheck, Plus, Trash2, Edit2, Search, ChevronRight, Camera, Share2, Copy,
-  Check, ArrowRight, Banknote, TrendingUp,
+  Check, CheckCircle2, ArrowRight, Banknote, TrendingUp,
 } from "lucide-react";
 import {
   useAddresses, useFollowing, useProfile, useQuotes, useRecentlyViewed, useWallet,
@@ -297,38 +297,71 @@ export function WalletSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* ---------- Addresses ---------- */
+/* ---------- Addresses (Taobao / Amazon style) ---------- */
+type AddrDraft = {
+  label: string; name: string; phone: string;
+  country: string; state: string; city: string;
+  zip: string; line1: string; line2: string;
+  default: boolean;
+};
+const EMPTY_ADDR: AddrDraft = {
+  label: "Home", name: "", phone: "", country: "United States",
+  state: "", city: "", zip: "", line1: "", line2: "", default: false,
+};
+const LABEL_OPTS = ["Home", "Job Site", "Office", "Warehouse"];
+
 export function AddressesSheet({ onClose }: { onClose: () => void }) {
   const [list, setList] = useAddresses();
   const [editing, setEditing] = useState<null | string>(null);
-  const [draft, setDraft] = useState<{ label: string; name: string; line: string; phone: string }>({ label: "", name: "", line: "", phone: "" });
+  const [draft, setDraft] = useState<AddrDraft>(EMPTY_ADDR);
 
-  const startNew = () => { setDraft({ label: "Job site", name: "", line: "", phone: "" }); setEditing("new"); };
-  const saveAddr = () => {
-    if (editing === "new") {
-      setList(l => [...l, { id: `a${Date.now()}`, ...draft }]);
-    } else if (editing) {
-      setList(l => l.map(a => a.id === editing ? { ...a, ...draft } : a));
-    }
+  const startNew = () => { setDraft({ ...EMPTY_ADDR, default: list.length === 0 }); setEditing("new"); };
+  const startEdit = (a: any) => {
+    const parts = (a.line || "").split(",").map((s: string) => s.trim());
+    setDraft({
+      label: a.label || "Home", name: a.name || "", phone: a.phone || "",
+      country: "United States",
+      state: parts[2]?.split(" ")[0] || "", city: parts[1] || "",
+      zip: parts[2]?.split(" ")[1] || "", line1: parts[0] || "", line2: "",
+      default: !!a.default,
+    });
+    setEditing(a.id);
+  };
+  const save = () => {
+    if (!draft.name.trim() || !draft.line1.trim() || !draft.phone.trim()) return;
+    const line = [draft.line1, draft.city, `${draft.state} ${draft.zip}`.trim()].filter(Boolean).join(", ");
+    const next = { label: draft.label, name: draft.name, phone: draft.phone, line };
+    setList(l => {
+      let updated = editing === "new"
+        ? [...l, { id: `a${Date.now()}`, ...next, default: draft.default }]
+        : l.map(a => a.id === editing ? { ...a, ...next, default: draft.default } : a);
+      if (draft.default) updated = updated.map(a => ({ ...a, default: a.id === (editing === "new" ? updated[updated.length - 1].id : editing) }));
+      return updated;
+    });
     setEditing(null);
   };
 
   return (
-    <Sheet title="Addresses" onClose={onClose}
-      footer={<button onClick={startNew} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3.5 flex items-center justify-center gap-2"><Plus className="h-4 w-4" /> Add address</button>}>
-      <div className="space-y-2">
+    <Sheet title="Shipping Addresses" onClose={onClose}
+      footer={<button onClick={startNew} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3.5 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"><Plus className="h-4 w-4" /> Add new address</button>}>
+      <div className="space-y-2.5">
+        {list.length === 0 && (
+          <div className="text-center py-10 text-muted-foreground text-sm">No addresses yet. Add one to start shipping.</div>
+        )}
         {list.map(a => (
-          <div key={a.id} className="bg-card border rounded-2xl p-3">
+          <div key={a.id} className="bg-card border rounded-2xl p-4 relative">
+            {a.default && <span className="absolute top-3 right-3 text-[9px] font-black bg-primary text-primary-foreground rounded-full px-2 py-0.5 tracking-wider">DEFAULT</span>}
             <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span className="text-xs font-bold">{a.label}{a.default ? " · Default" : ""}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 rounded-md px-2 py-0.5">{a.label}</span>
             </div>
-            <p className="text-sm font-bold mt-1">{a.name}</p>
-            <p className="text-[11px] text-muted-foreground">{a.line}</p>
-            <p className="text-[11px] text-muted-foreground">{a.phone}</p>
-            <div className="flex gap-2 mt-2">
-              {!a.default && <button onClick={() => setList(l => l.map(x => ({ ...x, default: x.id === a.id })))} className="text-[11px] font-bold text-primary">Set default</button>}
-              <button onClick={() => { setDraft({ label: a.label, name: a.name, line: a.line, phone: a.phone }); setEditing(a.id); }} className="text-[11px] font-bold ml-auto">Edit</button>
+            <div className="flex items-baseline gap-2 mt-2">
+              <p className="font-black text-base">{a.name}</p>
+              <p className="text-xs text-muted-foreground">{a.phone}</p>
+            </div>
+            <p className="text-[12px] text-foreground/80 mt-1 leading-relaxed">{a.line}</p>
+            <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+              {!a.default && <button onClick={() => setList(l => l.map(x => ({ ...x, default: x.id === a.id })))} className="text-[11px] font-bold text-primary flex items-center gap-1"><CheckCircle2 className="h-3 w-3"/> Set default</button>}
+              <button onClick={() => startEdit(a)} className="text-[11px] font-bold ml-auto text-muted-foreground hover:text-foreground">Edit</button>
               <button onClick={() => setList(l => l.filter(x => x.id !== a.id))} className="text-[11px] font-bold text-error">Delete</button>
             </div>
           </div>
@@ -336,20 +369,92 @@ export function AddressesSheet({ onClose }: { onClose: () => void }) {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-[60] bg-black/60 grid place-items-end p-3" onClick={() => setEditing(null)}>
-          <div onClick={e => e.stopPropagation()} className="w-full max-w-[420px] mx-auto bg-background rounded-3xl border p-4 space-y-3">
-            <p className="font-black">{editing === "new" ? "New address" : "Edit address"}</p>
-            {[["Label", "label"], ["Name", "name"], ["Address", "line"], ["Phone", "phone"]].map(([l, k]) => (
-              <input key={k} placeholder={l} value={(draft as any)[k]} onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))}
-                className="w-full glass rounded-2xl px-4 py-3 text-sm bg-transparent outline-none" />
-            ))}
-            <button onClick={saveAddr} className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3 text-sm">Save</button>
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setEditing(null)}>
+          <div onClick={e => e.stopPropagation()} className="w-full max-w-[420px] bg-background rounded-t-3xl sm:rounded-3xl border max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b">
+              <p className="font-black text-base">{editing === "new" ? "New address" : "Edit address"}</p>
+              <button onClick={() => setEditing(null)} className="h-8 w-8 rounded-full bg-muted grid place-items-center"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">Tag</p>
+                <div className="flex gap-2 flex-wrap">
+                  {LABEL_OPTS.map(l => (
+                    <button key={l} onClick={() => setDraft(d => ({ ...d, label: l }))}
+                      className={`text-xs font-bold rounded-full px-3 py-1.5 border-2 transition-all ${draft.label === l ? "border-primary bg-primary/10 text-primary" : "border-transparent bg-muted text-muted-foreground"}`}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <Field label="Contact name">
+                <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
+                  placeholder="Full name" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+              </Field>
+              <Field label="Phone number">
+                <input value={draft.phone} onChange={e => setDraft(d => ({ ...d, phone: e.target.value }))}
+                  placeholder="+1 (___) ___-____" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+              </Field>
+              <Field label="Country / Region">
+                <select value={draft.country} onChange={e => setDraft(d => ({ ...d, country: e.target.value }))}
+                  className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm font-bold outline-none">
+                  {["United States", "Canada", "Mexico"].map(c => <option key={c}>{c}</option>)}
+                </select>
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="State">
+                  <input value={draft.state} onChange={e => setDraft(d => ({ ...d, state: e.target.value }))}
+                    placeholder="TX" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+                </Field>
+                <Field label="ZIP code">
+                  <input value={draft.zip} onChange={e => setDraft(d => ({ ...d, zip: e.target.value }))}
+                    placeholder="75201" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+                </Field>
+              </div>
+              <Field label="City">
+                <input value={draft.city} onChange={e => setDraft(d => ({ ...d, city: e.target.value }))}
+                  placeholder="Dallas" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+              </Field>
+              <Field label="Street address">
+                <input value={draft.line1} onChange={e => setDraft(d => ({ ...d, line1: e.target.value }))}
+                  placeholder="Street, number" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+              </Field>
+              <Field label="Apt / Suite / Notes (optional)">
+                <input value={draft.line2} onChange={e => setDraft(d => ({ ...d, line2: e.target.value }))}
+                  placeholder="Building, gate code, delivery notes" className="w-full bg-muted rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+              </Field>
+              <label className="flex items-center gap-3 bg-muted/50 rounded-xl px-3.5 py-3 cursor-pointer">
+                <span className={`h-5 w-9 rounded-full p-0.5 transition-colors ${draft.default ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                  <span className={`block h-4 w-4 rounded-full bg-white transition-transform ${draft.default ? "translate-x-4" : ""}`} />
+                </span>
+                <input type="checkbox" checked={draft.default} onChange={e => setDraft(d => ({ ...d, default: e.target.checked }))} className="sr-only" />
+                <span className="text-sm font-bold flex-1">Set as default shipping address</span>
+              </label>
+            </div>
+            <div className="px-5 py-3 border-t bg-background">
+              <button onClick={save}
+                disabled={!draft.name.trim() || !draft.line1.trim() || !draft.phone.trim()}
+                className="w-full rounded-2xl bg-primary text-primary-foreground font-black py-3.5 text-sm active:scale-[0.98] transition-transform disabled:opacity-50">
+                Save address
+              </button>
+            </div>
           </div>
         </div>
       )}
     </Sheet>
   );
 }
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-1.5">{label}</p>
+      {children}
+    </div>
+  );
+}
+
 
 /* ---------- My Quotes ---------- */
 export function QuotesSheet({ onClose }: { onClose: () => void }) {

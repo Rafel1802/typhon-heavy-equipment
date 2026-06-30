@@ -6,7 +6,7 @@ import {
   Truck, ShieldCheck, Banknote, Headphones, Plus, Minus, X, Send,
   Sun, Moon, ArrowRight, Tag, Zap, MapPin, CheckCircle2, Clock,
   FileText, MessageCircle, Settings, LogOut, BadgeCheck, Filter,
-  Shield, Wallet, CreditCard, RotateCcw, Eye, Gift, Receipt,
+  Shield, Wallet, CreditCard, RotateCcw, Eye, Gift, Receipt, Camera,
 } from "lucide-react";
 
 import excavator from "@/assets/excavator.jpg";
@@ -211,16 +211,23 @@ function App() {
 
             {/* Floating AI button (not on AI tab) */}
             {tab !== "ai" && (
-              <button
-                onClick={() => setTab("ai")}
-                className="absolute bottom-28 right-5 z-30 h-14 w-14 rounded-full glass-strong yellow-glow grid place-items-center text-foreground animate-float-in"
-                aria-label="AI Assistant"
-              >
-                <div className="relative">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" style={{ animation: "pulse-dot 1.6s infinite" }} />
-                </div>
-              </button>
+              <div className="absolute bottom-28 right-5 z-30 group">
+                <span className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-foreground text-background text-[11px] font-black tracking-wider px-3 py-1.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-lg">
+                  TYPHON CHAT BOT
+                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 h-2 w-2 rotate-45 bg-foreground" />
+                </span>
+                <button
+                  onClick={() => setTab("ai")}
+                  className="h-14 w-14 rounded-full glass-strong yellow-glow grid place-items-center text-foreground animate-float-in"
+                  aria-label="TYPHON CHAT BOT"
+                  title="TYPHON CHAT BOT"
+                >
+                  <div className="relative">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" style={{ animation: "pulse-dot 1.6s infinite" }} />
+                  </div>
+                </button>
+              </div>
             )}
 
             {/* Admin floating button */}
@@ -584,6 +591,7 @@ type AIMsg = {
   role: "ai" | "user";
   text: string;
   products?: Product[];
+  image?: string;
 };
 
 const TYPHON_KB = [
@@ -652,13 +660,15 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
 
   const current = sessions.find(s => s.id === activeId);
   const msgs: AIMsg[] = useMemo(() => (current?.messages ?? []).map(m => ({
-    role: m.role, text: m.text,
+    role: m.role, text: m.text, image: m.image,
     products: m.productIds ? m.productIds.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean) as Product[] : undefined,
   })), [current]);
 
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const prompts = ["Find me a mini excavator", "Show all skid steers", "Shipping to 75201?", "Financing options", "Best for landscaping"];
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const prompts = ["Find me a mini excavator", "Show all skid steers", "Shipping to 75201?", "Financing options", "Identify this machine"];
 
   const pushMsg = (msg: ChatMsg, titleHint?: string) => {
     setSessions(prev => prev.map(s => s.id === activeId
@@ -666,12 +676,26 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       : s));
   };
 
-  const callGemini = async (history: ChatMsg[], userText: string): Promise<string> => {
+  const handleImagePick = (file: File) => {
+    if (file.size > 4 * 1024 * 1024) { alert("Image must be under 4 MB"); return; }
+    const r = new FileReader();
+    r.onload = () => setPendingImage(r.result as string);
+    r.readAsDataURL(file);
+  };
+
+  const callGemini = async (history: ChatMsg[], userText: string, imageDataUrl?: string | null): Promise<string> => {
     const sys = aiCfg.systemPrompt + "\n\nProduct catalog (id · name · brand · price · category):\n" +
       PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const userParts: any[] = [];
+    if (imageDataUrl) {
+      const [meta, data] = imageDataUrl.split(",");
+      const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
+      userParts.push({ inline_data: { mime_type: mime, data } });
+    }
+    userParts.push({ text: userText || "Please analyze this image." });
     const contents = [
-      ...history.filter(m => m.text).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
-      { role: "user", parts: [{ text: userText }] },
+      ...history.filter(m => m.text && !m.image).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
+      { role: "user", parts: userParts },
     ];
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(aiCfg.model)}:generateContent?key=${encodeURIComponent(aiCfg.googleApiKey)}`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -684,25 +708,27 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
 
   const send = async (t?: string) => {
     const text = (t ?? input).trim();
-    if (!text || !activeId) return;
-    pushMsg({ role: "user", text, ts: Date.now() }, text);
+    const img = pendingImage;
+    if (!text && !img) return;
+    if (!activeId) return;
+    pushMsg({ role: "user", text: text || (img ? "[image]" : ""), image: img || undefined, ts: Date.now() }, text);
     setInput("");
+    setPendingImage(null);
     setTyping(true);
-    // Always do local product search for cards
-    const local = aiAnswer(text, PRODUCTS);
+    const local = aiAnswer(text || "find equipment", PRODUCTS);
     if (aiConnected) {
       try {
         const history = current?.messages ?? [];
-        const reply = await callGemini(history, text);
-        pushMsg({ role: "ai", text: reply, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        const reply = await callGemini(history, text, img);
+        pushMsg({ role: "ai", text: reply, productIds: img ? undefined : local.products?.map(p => p.id), ts: Date.now() });
       } catch (e: any) {
-        pushMsg({ role: "ai", text: `Gemini error: ${e.message}. Falling back to built-in answer.\n\n${local.text}`, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        pushMsg({ role: "ai", text: `⚠️ AI error: ${e.message}\n\nUsing built-in: ${local.text}`, productIds: local.products?.map(p => p.id), ts: Date.now() });
       } finally {
         setTyping(false);
       }
     } else {
       setTimeout(() => {
-        pushMsg({ role: "ai", text: local.text, productIds: local.products?.map(p => p.id), ts: Date.now() });
+        pushMsg({ role: "ai", text: img ? "I can see your image. Connect Google Gemini in Admin → AI to enable image analysis. Meanwhile: " + local.text : local.text, productIds: local.products?.map(p => p.id), ts: Date.now() });
         setTyping(false);
       }, 450);
     }
@@ -725,11 +751,11 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       <div className="px-5 pb-3 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-success inline-block" style={{ animation: "pulse-dot 1.6s infinite" }} />
-            Online · Equipment Expert
+            <span className={`h-1.5 w-1.5 rounded-full inline-block ${aiConnected ? "bg-success" : "bg-warning"}`} style={{ animation: "pulse-dot 1.6s infinite" }} />
+            {aiConnected ? `Gemini · ${aiCfg.model}` : "Built-in mode · Connect Gemini in Admin"}
           </p>
-          <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Typhon AI
+          <h1 className="text-xl font-black tracking-tight flex items-center gap-2" title="TYPHON CHAT BOT">
+            <Sparkles className="h-5 w-5 text-primary" /> TYPHON Chat Bot
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -742,9 +768,12 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
         {msgs.map((m, i) => (
           <div key={i} className="space-y-2">
             <div className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              <div className={`max-w-[82%] rounded-2xl ${m.image ? "p-1.5" : "px-4 py-2.5"} text-sm leading-relaxed ${
                 m.role === "user" ? "bg-primary text-primary-foreground rounded-br-sm" : "glass rounded-bl-sm"
-              }`}>{m.text}</div>
+              }`}>
+                {m.image && <img src={m.image} alt="upload" className="rounded-xl max-h-48 w-auto object-cover mb-1" />}
+                {m.text && <div className={m.image ? "px-2.5 pb-1.5" : ""}>{m.text}</div>}
+              </div>
             </div>
             {m.products && m.products.length > 0 && (
               <div className="space-y-2">
@@ -791,15 +820,28 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       </div>
 
       <div className="px-5 pb-3">
-        <div className="glass-strong rounded-full flex items-center gap-2 pl-4 pr-1.5 py-1.5">
+        {pendingImage && (
+          <div className="mb-2 inline-flex items-center gap-2 glass rounded-2xl p-2 pr-3">
+            <img src={pendingImage} alt="" className="h-12 w-12 rounded-xl object-cover" />
+            <span className="text-xs font-bold">Image ready</span>
+            <button onClick={() => setPendingImage(null)} className="h-6 w-6 rounded-full bg-muted grid place-items-center"><X className="h-3 w-3" /></button>
+          </div>
+        )}
+        <div className="glass-strong rounded-full flex items-center gap-2 pl-2 pr-1.5 py-1.5">
+          <input ref={fileRef} type="file" accept="image/*" className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleImagePick(f); e.target.value = ""; }} />
+          <button onClick={() => fileRef.current?.click()} title="Attach image"
+            className="h-9 w-9 rounded-full bg-muted grid place-items-center shrink-0 hover:bg-primary/10 transition-colors">
+            <Camera className="h-4 w-4 text-muted-foreground" />
+          </button>
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
-            placeholder="Ask anything — products, shipping, financing..." className="flex-1 bg-transparent text-sm outline-none py-1.5" />
-          <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center">
+            placeholder={pendingImage ? "Ask about this image…" : "Ask anything — or attach a photo"} className="flex-1 bg-transparent text-sm outline-none py-1.5 min-w-0" />
+          <button onClick={() => send()} className="h-9 w-9 rounded-full bg-primary text-primary-foreground grid place-items-center shrink-0">
             <Send className="h-4 w-4" />
           </button>
         </div>
         <p className="text-[10px] text-muted-foreground text-center mt-2">
-          Works offline with built-in knowledge · Chat history saved automatically
+          {aiConnected ? "Powered by Google Gemini · image vision enabled" : "Built-in mode · attach Google API key in Admin → AI for smart answers + vision"}
         </p>
       </div>
 
