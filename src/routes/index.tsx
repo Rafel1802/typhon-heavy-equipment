@@ -591,6 +591,7 @@ type AIMsg = {
   role: "ai" | "user";
   text: string;
   products?: Product[];
+  image?: string;
 };
 
 const TYPHON_KB = [
