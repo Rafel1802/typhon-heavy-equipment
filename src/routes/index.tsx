@@ -211,16 +211,23 @@ function App() {
 
             {/* Floating AI button (not on AI tab) */}
             {tab !== "ai" && (
-              <button
-                onClick={() => setTab("ai")}
-                className="absolute bottom-28 right-5 z-30 h-14 w-14 rounded-full glass-strong yellow-glow grid place-items-center text-foreground animate-float-in"
-                aria-label="AI Assistant"
-              >
-                <div className="relative">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" style={{ animation: "pulse-dot 1.6s infinite" }} />
-                </div>
-              </button>
+              <div className="absolute bottom-28 right-5 z-30 group">
+                <span className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-foreground text-background text-[11px] font-black tracking-wider px-3 py-1.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all shadow-lg">
+                  TYPHON CHAT BOT
+                  <span className="absolute -right-1 top-1/2 -translate-y-1/2 h-2 w-2 rotate-45 bg-foreground" />
+                </span>
+                <button
+                  onClick={() => setTab("ai")}
+                  className="h-14 w-14 rounded-full glass-strong yellow-glow grid place-items-center text-foreground animate-float-in"
+                  aria-label="TYPHON CHAT BOT"
+                  title="TYPHON CHAT BOT"
+                >
+                  <div className="relative">
+                    <Sparkles className="h-6 w-6 text-primary" />
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-primary" style={{ animation: "pulse-dot 1.6s infinite" }} />
+                  </div>
+                </button>
+              </div>
             )}
 
             {/* Admin floating button */}
