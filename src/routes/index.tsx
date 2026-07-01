@@ -641,6 +641,7 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [aiCfg] = useAIConfig();
+  const { t, info: langInfo } = useI18n();
   const aiConnected = aiCfg.provider === "google" && !!aiCfg.googleApiKey;
 
   // Ensure a current session exists
@@ -651,13 +652,13 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
         const id = "s" + Date.now();
         const s: ChatSession = {
           id, title: "New chat", createdAt: Date.now(),
-          messages: [{ role: "ai", text: "Hi John — I'm your Typhon equipment expert. Ask me anything: shipping, financing, warranty, or 'find me a mini excavator under $40k'.", ts: Date.now() }],
+          messages: [{ role: "ai", text: t("aiHello"), ts: Date.now() }],
         };
         setSessions([s]);
         setActiveId(id);
       }
     }
-  }, [activeId, sessions, setSessions]);
+  }, [activeId, sessions, setSessions, t]);
 
   const current = sessions.find(s => s.id === activeId);
   const msgs: AIMsg[] = useMemo(() => (current?.messages ?? []).map(m => ({
@@ -685,8 +686,22 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
   };
 
   const callGemini = async (history: ChatMsg[], userText: string, imageDataUrl?: string | null): Promise<string> => {
-    const sys = aiCfg.systemPrompt + "\n\nProduct catalog (id · name · brand · price · category):\n" +
-      PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const catalog = PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const sys = [
+      aiCfg.systemPrompt,
+      "",
+      "=== BRAND RULES ===",
+      aiCfg.brandRules,
+      "",
+      "=== BRAND KNOWLEDGE ===",
+      aiCfg.brandKnowledge,
+      "",
+      "=== LIVE PRODUCT CATALOG (id · name · brand · price · category) ===",
+      catalog,
+      "",
+      `=== LANGUAGE DIRECTIVE ===`,
+      `Always respond in ${langInfo.english} (${langInfo.name}). Translate any English brand terms naturally, keep product names and model codes as-is.`,
+    ].join("\n");
     const userParts: any[] = [];
     if (imageDataUrl) {
       const [meta, data] = imageDataUrl.split(",");
