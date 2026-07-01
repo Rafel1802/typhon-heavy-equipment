@@ -795,9 +795,35 @@ function AdminAI() {
           </select>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Prompt</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Prompt (persona)</p>
           <textarea value={draft.systemPrompt} onChange={e => setDraft({ ...draft, systemPrompt: e.target.value })} rows={4}
             className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Brand Rules (tone & guardrails)</p>
+          <textarea value={draft.brandRules} onChange={e => setDraft({ ...draft, brandRules: e.target.value })} rows={4}
+            placeholder="How the AI should represent TYPHON, handle competitors, and drive to purchase…"
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Brand Knowledge Script</p>
+          <textarea value={draft.brandKnowledge} onChange={e => setDraft({ ...draft, brandKnowledge: e.target.value })} rows={8}
+            placeholder="Paste FAQs, spec sheets, warranty terms, financing details, shipping zones, coupon list, dealer info…"
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none font-mono" />
+          <div className="mt-2 flex items-center gap-2">
+            <label className="flex-1 rounded-xl bg-primary/10 text-primary text-[11px] font-bold py-2.5 grid place-items-center cursor-pointer active:scale-[0.98]">
+              Upload .txt / .md script
+              <input type="file" accept=".txt,.md,.json,.csv" className="hidden" onChange={e => {
+                const f = e.target.files?.[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = () => setDraft({ ...draft, brandKnowledge: String(r.result || "") });
+                r.readAsText(f);
+              }} />
+            </label>
+            <button onClick={() => setDraft({ ...draft, brandKnowledge: "" })}
+              className="rounded-xl bg-muted text-xs font-bold px-3 py-2.5">Clear</button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5">{draft.brandKnowledge.length.toLocaleString()} chars · Injected into every AI answer.</p>
         </div>
       </div>
 
