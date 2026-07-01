@@ -896,7 +896,8 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
   const [notif, setNotif] = useState({ orders: true, promos: true, ai: false, price: true });
   const [privacy, setPrivacy] = useState({ personalized: true, analytics: false, location: true });
   const [appearance, setAppearance] = useState<"liquid" | "classic" | "high">("liquid");
-  const [country, setCountry] = useState({ country: "United States", lang: "English", currency: "USD" });
+  const { t, info: langInfo } = useI18n();
+  const [country, setCountry] = useState({ country: "United States", currency: langInfo.currency });
 
   const groups: { title: string; rows: { icon: any; label: string; trail?: string; key: string }[] }[] = [
     {
@@ -905,7 +906,7 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
         { icon: MapPin, label: "My addresses", trail: "2 saved", key: "addresses" },
         { icon: ShieldCheck, label: "Account and security", trail: "", key: "security" },
         { icon: CreditCard, label: "Payment settings", trail: "Visa •••• 3568", key: "payment" },
-        { icon: Globe, label: "Country / language / currency", trail: `${country.country.split(" ")[0]} · EN · ${country.currency}`, key: "country" },
+        { icon: Globe, label: `${t("language")} / ${t("region")} / ${t("currency")}`, trail: `${langInfo.flag} ${langInfo.name} · ${country.currency}`, key: "country" },
       ],
     },
     {
