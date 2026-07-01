@@ -7,6 +7,7 @@ import {
   ShoppingBag, Eye, Apple,
 } from "lucide-react";
 import { useAIConfig, usePaymentCards, useSecurity } from "@/lib/typhon-store";
+import { useI18n, LANGUAGES } from "@/lib/i18n";
 
 /* ============================================================
    AUTH SCREEN — login / register / google / phone
@@ -795,9 +796,35 @@ function AdminAI() {
           </select>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Prompt</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">System Prompt (persona)</p>
           <textarea value={draft.systemPrompt} onChange={e => setDraft({ ...draft, systemPrompt: e.target.value })} rows={4}
             className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Brand Rules (tone & guardrails)</p>
+          <textarea value={draft.brandRules} onChange={e => setDraft({ ...draft, brandRules: e.target.value })} rows={4}
+            placeholder="How the AI should represent TYPHON, handle competitors, and drive to purchase…"
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Brand Knowledge Script</p>
+          <textarea value={draft.brandKnowledge} onChange={e => setDraft({ ...draft, brandKnowledge: e.target.value })} rows={8}
+            placeholder="Paste FAQs, spec sheets, warranty terms, financing details, shipping zones, coupon list, dealer info…"
+            className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-xs leading-relaxed outline-none focus:ring-2 ring-primary resize-none font-mono" />
+          <div className="mt-2 flex items-center gap-2">
+            <label className="flex-1 rounded-xl bg-primary/10 text-primary text-[11px] font-bold py-2.5 grid place-items-center cursor-pointer active:scale-[0.98]">
+              Upload .txt / .md script
+              <input type="file" accept=".txt,.md,.json,.csv" className="hidden" onChange={e => {
+                const f = e.target.files?.[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = () => setDraft({ ...draft, brandKnowledge: String(r.result || "") });
+                r.readAsText(f);
+              }} />
+            </label>
+            <button onClick={() => setDraft({ ...draft, brandKnowledge: "" })}
+              className="rounded-xl bg-muted text-xs font-bold px-3 py-2.5">Clear</button>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5">{draft.brandKnowledge.length.toLocaleString()} chars · Injected into every AI answer.</p>
         </div>
       </div>
 
@@ -869,7 +896,8 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
   const [notif, setNotif] = useState({ orders: true, promos: true, ai: false, price: true });
   const [privacy, setPrivacy] = useState({ personalized: true, analytics: false, location: true });
   const [appearance, setAppearance] = useState<"liquid" | "classic" | "high">("liquid");
-  const [country, setCountry] = useState({ country: "United States", lang: "English", currency: "USD" });
+  const { t, info: langInfo } = useI18n();
+  const [country, setCountry] = useState({ country: "United States", currency: langInfo.currency });
 
   const groups: { title: string; rows: { icon: any; label: string; trail?: string; key: string }[] }[] = [
     {
@@ -878,7 +906,7 @@ export function SettingsScreen({ onClose, onSignOut }: { onClose: () => void; on
         { icon: MapPin, label: "My addresses", trail: "2 saved", key: "addresses" },
         { icon: ShieldCheck, label: "Account and security", trail: "", key: "security" },
         { icon: CreditCard, label: "Payment settings", trail: "Visa •••• 3568", key: "payment" },
-        { icon: Globe, label: "Country / language / currency", trail: `${country.country.split(" ")[0]} · EN · ${country.currency}`, key: "country" },
+        { icon: Globe, label: `${t("language")} / ${t("region")} / ${t("currency")}`, trail: `${langInfo.flag} ${langInfo.name} · ${country.currency}`, key: "country" },
       ],
     },
     {
@@ -1011,26 +1039,7 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "country") {
-    body = (
-      <div className="space-y-3">
-        {[
-          ["Country / Region", "country", ["United States", "Canada", "Mexico", "United Kingdom"]],
-          ["Language", "lang", ["English", "Español", "Français"]],
-          ["Currency", "currency", ["USD", "CAD", "EUR", "GBP"]],
-        ].map(([label, key, opts]: any) => (
-          <div key={key}>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{label}</p>
-            <div className="bg-card border rounded-2xl divide-y overflow-hidden">
-              {opts.map((o: string) => (
-                <button key={o} onClick={() => setCountry({ ...country, [key]: o })} className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
-                  {o} {country[key] === o && <span className="text-primary">✓</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    body = <LanguageRegionPanel country={country} setCountry={setCountry} />;
   } else if (k === "payment") {
     body = <PaymentMethodsPanel />;
   } else if (k === "security") {
@@ -1255,6 +1264,71 @@ function SecurityPanel() {
       <button onClick={deleteAccount} className="w-full text-left px-4 py-3.5 text-sm font-semibold flex items-center justify-between active:bg-muted text-error">
         Delete account <ChevRight className="h-4 w-4" />
       </button>
+    </div>
+  );
+}
+
+/* ============================================================
+   LANGUAGE + REGION + CURRENCY PICKER
+============================================================ */
+function LanguageRegionPanel({ country, setCountry }: { country: { country: string; currency: string }; setCountry: (c: { country: string; currency: string }) => void }) {
+  const { lang, setLang } = useI18n();
+  const [q, setQ] = useState("");
+  const filtered = LANGUAGES.filter(l =>
+    !q || l.name.toLowerCase().includes(q.toLowerCase()) || l.english.toLowerCase().includes(q.toLowerCase()) || l.code.includes(q.toLowerCase())
+  );
+  const currencies = ["USD", "EUR", "GBP", "CAD", "CNY", "JPY", "KRW", "INR", "PHP", "AUD", "MXN"];
+  const regions = ["United States", "Canada", "Mexico", "United Kingdom", "Germany", "France", "Spain", "Italy", "China", "Japan", "Korea", "Philippines", "India"];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">App language</p>
+        <div className="relative mb-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search language…"
+            className="w-full bg-muted rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+        </div>
+        <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-72 overflow-y-auto no-scrollbar">
+          {filtered.map(l => (
+            <button key={l.code} onClick={() => setLang(l.code)}
+              className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
+              <span className="flex items-center gap-3">
+                <span className="text-lg">{l.flag}</span>
+                <span>
+                  <span className="block">{l.name}</span>
+                  <span className="block text-[10px] font-normal text-muted-foreground">{l.english}</span>
+                </span>
+              </span>
+              {lang === l.code && <span className="text-primary text-lg">✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Region</p>
+        <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-52 overflow-y-auto no-scrollbar">
+          {regions.map(r => (
+            <button key={r} onClick={() => setCountry({ ...country, country: r })}
+              className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
+              {r} {country.country === r && <span className="text-primary">✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Currency</p>
+        <div className="grid grid-cols-4 gap-2">
+          {currencies.map(c => (
+            <button key={c} onClick={() => setCountry({ ...country, currency: c })}
+              className={`rounded-xl py-2.5 text-xs font-black border ${country.currency === c ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
