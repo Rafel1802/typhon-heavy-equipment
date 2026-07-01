@@ -1291,7 +1291,7 @@ function LanguageRegionPanel({ country, setCountry }: { country: { country: stri
         </div>
         <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-72 overflow-y-auto no-scrollbar">
           {filtered.map(l => (
-            <button key={l.code} onClick={() => setCode(l.code)}
+            <button key={l.code} onClick={() => setLang(l.code)}
               className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
               <span className="flex items-center gap-3">
                 <span className="text-lg">{l.flag}</span>
@@ -1300,7 +1300,7 @@ function LanguageRegionPanel({ country, setCountry }: { country: { country: stri
                   <span className="block text-[10px] font-normal text-muted-foreground">{l.english}</span>
                 </span>
               </span>
-              {code === l.code && <span className="text-primary text-lg">✓</span>}
+              {lang === l.code && <span className="text-primary text-lg">✓</span>}
             </button>
           ))}
         </div>
