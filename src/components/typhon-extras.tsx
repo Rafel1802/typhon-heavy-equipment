@@ -1272,7 +1272,7 @@ function SecurityPanel() {
    LANGUAGE + REGION + CURRENCY PICKER
 ============================================================ */
 function LanguageRegionPanel({ country, setCountry }: { country: { country: string; currency: string }; setCountry: (c: { country: string; currency: string }) => void }) {
-  const { code, setCode } = useI18n();
+  const { lang, setLang } = useI18n();
   const [q, setQ] = useState("");
   const filtered = LANGUAGES.filter(l =>
     !q || l.name.toLowerCase().includes(q.toLowerCase()) || l.english.toLowerCase().includes(q.toLowerCase()) || l.code.includes(q.toLowerCase())
