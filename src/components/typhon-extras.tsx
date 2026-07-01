@@ -1267,3 +1267,68 @@ function SecurityPanel() {
     </div>
   );
 }
+
+/* ============================================================
+   LANGUAGE + REGION + CURRENCY PICKER
+============================================================ */
+function LanguageRegionPanel({ country, setCountry }: { country: { country: string; currency: string }; setCountry: (c: { country: string; currency: string }) => void }) {
+  const { code, setCode } = useI18n();
+  const [q, setQ] = useState("");
+  const filtered = LANGUAGES.filter(l =>
+    !q || l.name.toLowerCase().includes(q.toLowerCase()) || l.english.toLowerCase().includes(q.toLowerCase()) || l.code.includes(q.toLowerCase())
+  );
+  const currencies = ["USD", "EUR", "GBP", "CAD", "CNY", "JPY", "KRW", "INR", "PHP", "AUD", "MXN"];
+  const regions = ["United States", "Canada", "Mexico", "United Kingdom", "Germany", "France", "Spain", "Italy", "China", "Japan", "Korea", "Philippines", "India"];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">App language</p>
+        <div className="relative mb-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search language…"
+            className="w-full bg-muted rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:ring-2 ring-primary" />
+        </div>
+        <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-72 overflow-y-auto no-scrollbar">
+          {filtered.map(l => (
+            <button key={l.code} onClick={() => setCode(l.code)}
+              className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
+              <span className="flex items-center gap-3">
+                <span className="text-lg">{l.flag}</span>
+                <span>
+                  <span className="block">{l.name}</span>
+                  <span className="block text-[10px] font-normal text-muted-foreground">{l.english}</span>
+                </span>
+              </span>
+              {code === l.code && <span className="text-primary text-lg">✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Region</p>
+        <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-52 overflow-y-auto no-scrollbar">
+          {regions.map(r => (
+            <button key={r} onClick={() => setCountry({ ...country, country: r })}
+              className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
+              {r} {country.country === r && <span className="text-primary">✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Currency</p>
+        <div className="grid grid-cols-4 gap-2">
+          {currencies.map(c => (
+            <button key={c} onClick={() => setCountry({ ...country, currency: c })}
+              className={`rounded-xl py-2.5 text-xs font-black border ${country.currency === c ? "bg-primary text-primary-foreground border-primary" : "bg-card"}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
