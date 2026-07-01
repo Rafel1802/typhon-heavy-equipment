@@ -1195,12 +1195,13 @@ function AccountScreen(props: {
 
 /* ===================== COMPONENTS ===================== */
 function BottomNav({ tab, setTab, cartCount }: { tab: TabKey; setTab: (t: TabKey) => void; cartCount: number }) {
+  const { t } = useI18n();
   const items: { key: TabKey; label: string; icon: typeof Home }[] = [
-    { key: "home", label: "Home", icon: Home },
-    { key: "shop", label: "Shop", icon: Store },
-    { key: "ai", label: "AI", icon: Sparkles },
-    { key: "orders", label: "Orders", icon: Package },
-    { key: "account", label: "Account", icon: User },
+    { key: "home", label: t("home"), icon: Home },
+    { key: "shop", label: t("shop"), icon: Store },
+    { key: "ai", label: t("ai"), icon: Sparkles },
+    { key: "orders", label: t("orders"), icon: Package },
+    { key: "account", label: t("account"), icon: User },
   ];
   return (
     <div className="absolute bottom-4 left-4 right-4 z-40">
