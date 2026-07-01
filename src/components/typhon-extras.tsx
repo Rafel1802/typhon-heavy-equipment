@@ -1039,26 +1039,7 @@ function SettingsSubSheet({ k, onClose, notif, setNotif, privacy, setPrivacy, ap
       </div>
     );
   } else if (k === "country") {
-    body = (
-      <div className="space-y-3">
-        {[
-          ["Country / Region", "country", ["United States", "Canada", "Mexico", "United Kingdom"]],
-          ["Language", "lang", ["English", "Español", "Français"]],
-          ["Currency", "currency", ["USD", "CAD", "EUR", "GBP"]],
-        ].map(([label, key, opts]: any) => (
-          <div key={key}>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{label}</p>
-            <div className="bg-card border rounded-2xl divide-y overflow-hidden">
-              {opts.map((o: string) => (
-                <button key={o} onClick={() => setCountry({ ...country, [key]: o })} className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
-                  {o} {country[key] === o && <span className="text-primary">✓</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    body = <LanguageRegionPanel country={country} setCountry={setCountry} />;
   } else if (k === "payment") {
     body = <PaymentMethodsPanel />;
   } else if (k === "security") {
