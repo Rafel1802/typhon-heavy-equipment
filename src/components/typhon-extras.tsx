@@ -7,6 +7,7 @@ import {
   ShoppingBag, Eye, Apple,
 } from "lucide-react";
 import { useAIConfig, usePaymentCards, useSecurity } from "@/lib/typhon-store";
+import { useI18n, LANGUAGES } from "@/lib/i18n";
 
 /* ============================================================
    AUTH SCREEN — login / register / google / phone
