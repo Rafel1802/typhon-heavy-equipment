@@ -734,7 +734,13 @@ function AdminAI() {
   const [testing, setTesting] = useState<"idle" | "ok" | "fail" | "wait">("idle");
   const [testMsg, setTestMsg] = useState<string>("");
 
-  const save = () => { setCfg(draft); setTestMsg("Settings saved."); setTesting("ok"); };
+  const save = () => {
+    const next = { ...draft };
+    if (next.googleApiKey && next.provider !== "google") next.provider = "google";
+    setCfg(next); setDraft(next);
+    setTestMsg("Settings saved. AI is now using " + (next.provider === "google" ? "Google Gemini." : "the built-in engine."));
+    setTesting("ok");
+  };
 
   const testConnection = async () => {
     if (!draft.googleApiKey) { setTesting("fail"); setTestMsg("Add an API key first."); return; }
