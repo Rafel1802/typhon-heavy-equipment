@@ -734,7 +734,13 @@ function AdminAI() {
   const [testing, setTesting] = useState<"idle" | "ok" | "fail" | "wait">("idle");
   const [testMsg, setTestMsg] = useState<string>("");
 
-  const save = () => { setCfg(draft); setTestMsg("Settings saved."); setTesting("ok"); };
+  const save = () => {
+    const next = { ...draft };
+    if (next.googleApiKey && next.provider !== "google") next.provider = "google";
+    setCfg(next); setDraft(next);
+    setTestMsg("Settings saved. AI is now using " + (next.provider === "google" ? "Google Gemini." : "the built-in engine."));
+    setTesting("ok");
+  };
 
   const testConnection = async () => {
     if (!draft.googleApiKey) { setTesting("fail"); setTestMsg("Add an API key first."); return; }
@@ -792,7 +798,7 @@ function AdminAI() {
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Model</p>
           <select value={draft.model} onChange={e => setDraft({ ...draft, model: e.target.value })}
             className="mt-2 w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-bold outline-none">
-            {["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"].map(m => <option key={m} value={m}>{m}</option>)}
+            {["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"].map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
         <div>

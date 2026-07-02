@@ -28,6 +28,8 @@ import {
 } from "@/components/typhon-panels";
 import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
 import { useI18n, LANGUAGES } from "@/lib/i18n";
+import { SplashScreen } from "@/components/SplashScreen";
+import { translateDOM, restoreDOM } from "@/lib/auto-translate";
 
 type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
@@ -84,6 +86,9 @@ const CATEGORIES = [
 const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function App() {
+  const [splashDone, setSplashDone] = useState(false);
+  const { lang } = useI18n();
+  const appRootRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<TabKey>("home");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selected, setSelected] = useState<Product | null>(null);
@@ -122,6 +127,24 @@ function App() {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
+  // Auto-translate the whole UI whenever the language changes.
+  useEffect(() => {
+    if (!splashDone) return;
+    const root = appRootRef.current;
+    if (!root) return;
+    if (lang === "en") { restoreDOM(root); return; }
+    let cancelled = false;
+    const run = () => { if (!cancelled) translateDOM(root, lang); };
+    const to = setTimeout(run, 120);
+    // Re-run on DOM mutations (tab changes, sheets opening, etc.)
+    const mo = new MutationObserver(() => {
+      clearTimeout((mo as any)._t);
+      (mo as any)._t = setTimeout(run, 250);
+    });
+    mo.observe(root, { childList: true, subtree: true, characterData: false });
+    return () => { cancelled = true; clearTimeout(to); mo.disconnect(); };
+  }, [lang, splashDone, tab, panel, showSettings, showAdmin, cartOpen, selected]);
+
   const cartCount = useMemo(() => Object.values(cart).reduce((a, b) => a + b, 0), [cart]);
   const cartTotal = useMemo(
     () => Object.entries(cart).reduce((sum, [id, q]) => {
@@ -150,7 +173,9 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
+    <>
+      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+    <div ref={appRootRef} data-app-root className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
       {/* Studio header */}
       <div className="mx-auto mb-8 max-w-6xl flex items-center justify-between text-white/90 px-2">
         <div className="flex items-center gap-3">
@@ -304,6 +329,7 @@ function App() {
       {panel === "quotes" && <QuotesSheet onClose={() => setPanel(null)} />}
       {panel === "verified" && <VerifiedSheet onClose={() => setPanel(null)} />}
     </div>
+    </>
   );
 }
 
