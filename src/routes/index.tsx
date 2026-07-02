@@ -86,6 +86,9 @@ const CATEGORIES = [
 const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 function App() {
+  const [splashDone, setSplashDone] = useState(false);
+  const { lang } = useI18n();
+  const appRootRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<TabKey>("home");
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [selected, setSelected] = useState<Product | null>(null);
