@@ -329,6 +329,7 @@ function App() {
       {panel === "quotes" && <QuotesSheet onClose={() => setPanel(null)} />}
       {panel === "verified" && <VerifiedSheet onClose={() => setPanel(null)} />}
     </div>
+    </>
   );
 }
 
