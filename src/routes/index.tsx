@@ -28,6 +28,8 @@ import {
 } from "@/components/typhon-panels";
 import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
 import { useI18n, LANGUAGES } from "@/lib/i18n";
+import { SplashScreen } from "@/components/SplashScreen";
+import { translateDOM, restoreDOM } from "@/lib/auto-translate";
 
 type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
