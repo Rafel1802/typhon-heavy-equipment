@@ -173,7 +173,9 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
+    <>
+      {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}
+    <div ref={appRootRef} data-app-root className="min-h-screen w-full bg-gradient-to-br from-[#0b1530] via-[#070d1e] to-[#0a1a3a] dark:from-[#050a18] dark:via-[#03060f] dark:to-[#06122a] py-6 px-3 md:py-10">
       {/* Studio header */}
       <div className="mx-auto mb-8 max-w-6xl flex items-center justify-between text-white/90 px-2">
         <div className="flex items-center gap-3">
