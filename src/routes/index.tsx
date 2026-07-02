@@ -127,6 +127,24 @@ function App() {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
+  // Auto-translate the whole UI whenever the language changes.
+  useEffect(() => {
+    if (!splashDone) return;
+    const root = appRootRef.current;
+    if (!root) return;
+    if (lang === "en") { restoreDOM(root); return; }
+    let cancelled = false;
+    const run = () => { if (!cancelled) translateDOM(root, lang); };
+    const to = setTimeout(run, 120);
+    // Re-run on DOM mutations (tab changes, sheets opening, etc.)
+    const mo = new MutationObserver(() => {
+      clearTimeout((mo as any)._t);
+      (mo as any)._t = setTimeout(run, 250);
+    });
+    mo.observe(root, { childList: true, subtree: true, characterData: false });
+    return () => { cancelled = true; clearTimeout(to); mo.disconnect(); };
+  }, [lang, splashDone, tab, panel, showSettings, showAdmin, cartOpen, selected]);
+
   const cartCount = useMemo(() => Object.values(cart).reduce((a, b) => a + b, 0), [cart]);
   const cartTotal = useMemo(
     () => Object.entries(cart).reduce((sum, [id, q]) => {
