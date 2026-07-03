@@ -20,7 +20,7 @@ function cleanModel(model: string) {
 function dataUrlToInlinePart(dataUrl: string) {
   const [meta, data] = dataUrl.split(",");
   const mime = meta?.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
-  return { inline_data: { mime_type: mime, data } };
+  return { inlineData: { mimeType: mime, data } };
 }
 
 function buildUserText(history: GeminiCall["history"], userText: string, imageDataUrl?: string | null) {
@@ -49,13 +49,13 @@ async function postGemini(call: GeminiCall, model: string, useSystemInstruction:
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(call.apiKey.trim())}`;
   const body = useSystemInstruction
     ? {
-        system_instruction: { parts: [{ text: call.system }] },
+        systemInstruction: { parts: [{ text: call.system }] },
         contents: buildContents(call),
-        generation_config: { temperature: 0.35, top_p: 0.9, max_output_tokens: 1200 },
+        generationConfig: { temperature: 0.35, topP: 0.9, maxOutputTokens: 1200 },
       }
     : {
         contents: buildContents(call, true),
-        generation_config: { temperature: 0.35, top_p: 0.9, max_output_tokens: 1200 },
+        generationConfig: { temperature: 0.35, topP: 0.9, maxOutputTokens: 1200 },
       };
 
   const res = await fetch(url, {
