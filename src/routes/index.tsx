@@ -30,6 +30,7 @@ import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed
 import { useI18n, LANGUAGES } from "@/lib/i18n";
 import { SplashScreen } from "@/components/SplashScreen";
 import { translateDOM, restoreDOM } from "@/lib/auto-translate";
+import { callGeminiApi } from "@/lib/gemini";
 
 type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
@@ -52,6 +53,7 @@ type Product = {
   name: string;
   brand: string;
   price: number | null;
+  originalPrice?: number;
   image: string;
   badge?: string;
   rating: number;
@@ -62,14 +64,14 @@ type Product = {
 };
 
 const PRODUCTS: Product[] = [
-  { id: "p1", name: "TX-35 Mini Excavator", brand: "Typhon Pro", price: 38500, image: excavator, badge: "Best Seller", rating: 4.9, reviews: 142, stock: "In Stock", financing: true, category: "Mini Excavator" },
-  { id: "p2", name: "SK-260 Skid Steer Loader", brand: "Typhon Pro", price: 42900, image: skidsteer, badge: "New", rating: 4.8, reviews: 88, stock: "In Stock", financing: true, category: "Skid Steer" },
-  { id: "p3", name: "WL-50 Wheel Loader", brand: "Typhon Heavy", price: 78400, image: wheelloader, badge: "Financing", rating: 4.7, reviews: 64, stock: "Low Stock", financing: true, category: "Wheel Loader" },
-  { id: "p4", name: "FL-30 Diesel Forklift", brand: "Typhon Lift", price: 21500, image: forklift, badge: "Sale", rating: 4.6, reviews: 211, stock: "In Stock", category: "Forklift" },
-  { id: "p5", name: 'Heavy-Duty 48" Bucket', brand: "Typhon Attach", price: 2890, image: attachment, badge: "In Stock", rating: 4.9, reviews: 73, stock: "In Stock", category: "Attachments" },
+  { id: "p1", name: "TX-35 Mini Excavator", brand: "Typhon Pro", price: 34500, originalPrice: 38500, image: excavator, badge: "Save $4,000", rating: 4.9, reviews: 142, stock: "In Stock", financing: true, category: "Mini Excavator" },
+  { id: "p2", name: "SK-260 Skid Steer Loader", brand: "Typhon Pro", price: 39900, originalPrice: 42900, image: skidsteer, badge: "Save $3,000", rating: 4.8, reviews: 88, stock: "In Stock", financing: true, category: "Skid Steer" },
+  { id: "p3", name: "WL-50 Wheel Loader", brand: "Typhon Heavy", price: 72400, originalPrice: 78400, image: wheelloader, badge: "Dealer Deal", rating: 4.7, reviews: 64, stock: "Low Stock", financing: true, category: "Wheel Loader" },
+  { id: "p4", name: "FL-30 Diesel Forklift", brand: "Typhon Lift", price: 18990, originalPrice: 21500, image: forklift, badge: "Sale", rating: 4.6, reviews: 211, stock: "In Stock", category: "Forklift" },
+  { id: "p5", name: 'Heavy-Duty 48" Bucket', brand: "Typhon Attach", price: 2490, originalPrice: 2890, image: attachment, badge: "Save $400", rating: 4.9, reviews: 73, stock: "In Stock", category: "Attachments" },
   { id: "p6", name: "SL-26 Electric Scissor Lift", brand: "Typhon Aerial", price: null, image: scissorlift, badge: "Quote", rating: 4.8, reviews: 39, stock: "Pre-order", financing: true, category: "Scissor Lift" },
-  { id: "p7", name: "RR-12 Tandem Road Roller", brand: "Typhon Heavy", price: 56800, image: wheelloader, badge: "New", rating: 4.7, reviews: 28, stock: "In Stock", financing: true, category: "Road Roller" },
-  { id: "p8", name: "Hydraulic Quick Coupler", brand: "Typhon Parts", price: 1290, image: attachment, rating: 4.8, reviews: 54, stock: "In Stock", category: "Parts" },
+  { id: "p7", name: "RR-12 Tandem Road Roller", brand: "Typhon Heavy", price: 51900, originalPrice: 56800, image: wheelloader, badge: "Fleet Price", rating: 4.7, reviews: 28, stock: "In Stock", financing: true, category: "Road Roller" },
+  { id: "p8", name: "Hydraulic Quick Coupler", brand: "Typhon Parts", price: 990, originalPrice: 1290, image: attachment, badge: "Parts Deal", rating: 4.8, reviews: 54, stock: "In Stock", category: "Parts" },
 ];
 
 const CATEGORIES = [
@@ -84,6 +86,8 @@ const CATEGORIES = [
 ];
 
 const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const hasDiscount = (p: Product) => !!(p.price && p.originalPrice && p.originalPrice > p.price);
+const discountPct = (p: Product) => hasDiscount(p) ? Math.round((1 - (p.price! / p.originalPrice!)) * 100) : 0;
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
