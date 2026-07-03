@@ -27,9 +27,10 @@ import {
   VerifiedSheet, SearchDropdown, HeroSlideshow,
 } from "@/components/typhon-panels";
 import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
-import { useI18n, LANGUAGES } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { SplashScreen } from "@/components/SplashScreen";
 import { translateDOM, restoreDOM } from "@/lib/auto-translate";
+import { callGeminiApi } from "@/lib/gemini";
 
 type PanelKey = "profile" | "help" | "share" | "wishlist" | "following" | "history" | "wallet" | "addresses" | "quotes" | "verified" | null;
 
@@ -52,6 +53,7 @@ type Product = {
   name: string;
   brand: string;
   price: number | null;
+  originalPrice?: number;
   image: string;
   badge?: string;
   rating: number;
@@ -62,14 +64,14 @@ type Product = {
 };
 
 const PRODUCTS: Product[] = [
-  { id: "p1", name: "TX-35 Mini Excavator", brand: "Typhon Pro", price: 38500, image: excavator, badge: "Best Seller", rating: 4.9, reviews: 142, stock: "In Stock", financing: true, category: "Mini Excavator" },
-  { id: "p2", name: "SK-260 Skid Steer Loader", brand: "Typhon Pro", price: 42900, image: skidsteer, badge: "New", rating: 4.8, reviews: 88, stock: "In Stock", financing: true, category: "Skid Steer" },
-  { id: "p3", name: "WL-50 Wheel Loader", brand: "Typhon Heavy", price: 78400, image: wheelloader, badge: "Financing", rating: 4.7, reviews: 64, stock: "Low Stock", financing: true, category: "Wheel Loader" },
-  { id: "p4", name: "FL-30 Diesel Forklift", brand: "Typhon Lift", price: 21500, image: forklift, badge: "Sale", rating: 4.6, reviews: 211, stock: "In Stock", category: "Forklift" },
-  { id: "p5", name: 'Heavy-Duty 48" Bucket', brand: "Typhon Attach", price: 2890, image: attachment, badge: "In Stock", rating: 4.9, reviews: 73, stock: "In Stock", category: "Attachments" },
+  { id: "p1", name: "TX-35 Mini Excavator", brand: "Typhon Pro", price: 34500, originalPrice: 38500, image: excavator, badge: "Save $4,000", rating: 4.9, reviews: 142, stock: "In Stock", financing: true, category: "Mini Excavator" },
+  { id: "p2", name: "SK-260 Skid Steer Loader", brand: "Typhon Pro", price: 39900, originalPrice: 42900, image: skidsteer, badge: "Save $3,000", rating: 4.8, reviews: 88, stock: "In Stock", financing: true, category: "Skid Steer" },
+  { id: "p3", name: "WL-50 Wheel Loader", brand: "Typhon Heavy", price: 72400, originalPrice: 78400, image: wheelloader, badge: "Dealer Deal", rating: 4.7, reviews: 64, stock: "Low Stock", financing: true, category: "Wheel Loader" },
+  { id: "p4", name: "FL-30 Diesel Forklift", brand: "Typhon Lift", price: 18990, originalPrice: 21500, image: forklift, badge: "Sale", rating: 4.6, reviews: 211, stock: "In Stock", category: "Forklift" },
+  { id: "p5", name: 'Heavy-Duty 48" Bucket', brand: "Typhon Attach", price: 2490, originalPrice: 2890, image: attachment, badge: "Save $400", rating: 4.9, reviews: 73, stock: "In Stock", category: "Attachments" },
   { id: "p6", name: "SL-26 Electric Scissor Lift", brand: "Typhon Aerial", price: null, image: scissorlift, badge: "Quote", rating: 4.8, reviews: 39, stock: "Pre-order", financing: true, category: "Scissor Lift" },
-  { id: "p7", name: "RR-12 Tandem Road Roller", brand: "Typhon Heavy", price: 56800, image: wheelloader, badge: "New", rating: 4.7, reviews: 28, stock: "In Stock", financing: true, category: "Road Roller" },
-  { id: "p8", name: "Hydraulic Quick Coupler", brand: "Typhon Parts", price: 1290, image: attachment, rating: 4.8, reviews: 54, stock: "In Stock", category: "Parts" },
+  { id: "p7", name: "RR-12 Tandem Road Roller", brand: "Typhon Heavy", price: 51900, originalPrice: 56800, image: wheelloader, badge: "Fleet Price", rating: 4.7, reviews: 28, stock: "In Stock", financing: true, category: "Road Roller" },
+  { id: "p8", name: "Hydraulic Quick Coupler", brand: "Typhon Parts", price: 990, originalPrice: 1290, image: attachment, badge: "Parts Deal", rating: 4.8, reviews: 54, stock: "In Stock", category: "Parts" },
 ];
 
 const CATEGORIES = [
@@ -84,6 +86,9 @@ const CATEGORIES = [
 ];
 
 const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+const hasDiscount = (p: Product) => !!(p.price && p.originalPrice && p.originalPrice > p.price);
+const discountPct = (p: Product) => hasDiscount(p) ? Math.round((1 - (p.price! / p.originalPrice!)) * 100) : 0;
+const productSavings = (p: Product) => hasDiscount(p) ? p.originalPrice! - p.price! : 0;
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
@@ -712,7 +717,7 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
   };
 
   const callGemini = async (history: ChatMsg[], userText: string, imageDataUrl?: string | null): Promise<string> => {
-    const catalog = PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const catalog = PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"}${hasDiscount(p) ? ` sale from $${p.originalPrice}` : ""} · ${p.category ?? "n/a"}`).join("\n");
     const sys = [
       aiCfg.systemPrompt,
       "",
@@ -728,24 +733,15 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       `=== LANGUAGE DIRECTIVE ===`,
       `Always respond in ${langInfo.english} (${langInfo.name}). Translate any English brand terms naturally, keep product names and model codes as-is.`,
     ].join("\n");
-    const userParts: any[] = [];
-    if (imageDataUrl) {
-      const [meta, data] = imageDataUrl.split(",");
-      const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
-      userParts.push({ inline_data: { mime_type: mime, data } });
-    }
-    userParts.push({ text: userText || "Please analyze this image." });
-    const contents = [
-      ...history.filter(m => m.text && !m.image).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
-      { role: "user", parts: userParts },
-    ];
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(aiCfg.model)}:generateContent?key=${encodeURIComponent(aiCfg.googleApiKey)}`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ system_instruction: { parts: [{ text: sys }] }, contents }),
+    const result = await callGeminiApi({
+      apiKey: aiCfg.googleApiKey,
+      model: aiCfg.model,
+      system: sys,
+      history,
+      userText,
+      imageDataUrl,
     });
-    const j: any = await res.json();
-    if (!res.ok) throw new Error(j?.error?.message || `HTTP ${res.status}`);
-    return j?.candidates?.[0]?.content?.parts?.[0]?.text || "(no response)";
+    return result.text;
   };
 
   const send = async (t?: string) => {
@@ -828,6 +824,7 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
                       <p className="font-bold text-sm truncate">{p.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className="text-xs text-primary font-black">{p.price ? fmt(p.price) : "Request Quote"}</p>
+                        {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
                         <span className="text-[10px] text-muted-foreground">★ {p.rating}</span>
                       </div>
                     </div>
@@ -1200,7 +1197,10 @@ function AccountScreen(props: {
               <img src={p.image} alt="" className="aspect-square w-full object-cover" />
               <div className="p-2">
                 <p className="text-xs font-bold line-clamp-1">{p.name}</p>
-                <p className="text-sm font-black text-primary mt-1">{p.price ? fmt(p.price) : "Quote"}</p>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <p className="text-sm font-black text-primary">{p.price ? fmt(p.price) : "Quote"}</p>
+                  {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
+                </div>
               </div>
             </button>
           ))}
@@ -1283,7 +1283,7 @@ function ProductCard({ p, onClick, fav, onFav, onAdd }: {
         <img src={p.image} alt={p.name} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         {p.badge && (
           <span className={`absolute top-2 left-2 rounded-full px-2 py-0.5 text-[9px] font-black tracking-wide ${
-            p.badge === "Sale" ? "bg-error text-white" :
+            p.badge === "Sale" || p.badge?.startsWith("Save") ? "bg-error text-white" :
             p.badge === "New" ? "bg-foreground text-background" :
             p.badge === "Best Seller" ? "bg-primary text-primary-foreground" :
             "glass-strong"
@@ -1305,7 +1305,10 @@ function ProductCard({ p, onClick, fav, onFav, onAdd }: {
         <div className="flex items-end justify-between pt-1">
           <div>
             {p.price ? (
-              <p className="font-black text-sm">{fmt(p.price)}</p>
+              <>
+                <p className="font-black text-sm text-primary">{fmt(p.price)}</p>
+                {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
+              </>
             ) : (
               <p className="text-[11px] font-black text-primary">Request Quote</p>
             )}
@@ -1326,13 +1329,15 @@ function FlashCard({ p, onClick }: { p: Product; onClick: () => void }) {
     <button onClick={onClick} className="shrink-0 w-36 bg-card border rounded-2xl overflow-hidden text-left">
       <div className="relative aspect-square bg-muted">
         <img src={p.image} alt="" className="h-full w-full object-cover" loading="lazy" />
-        <span className="absolute top-2 left-2 bg-error text-white text-[9px] font-black rounded-full px-2 py-0.5">-15%</span>
+        {hasDiscount(p) && <span className="absolute top-2 left-2 bg-error text-white text-[9px] font-black rounded-full px-2 py-0.5">-{discountPct(p)}%</span>}
       </div>
       <div className="p-2">
         <p className="text-[11px] font-bold leading-tight line-clamp-1">{p.name}</p>
         <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-black text-sm text-primary">{p.price ? fmt(p.price * 0.85) : "Quote"}</span>
+          <span className="font-black text-sm text-primary">{p.price ? fmt(p.price) : "Quote"}</span>
+          {hasDiscount(p) && <span className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</span>}
         </div>
+        {hasDiscount(p) && <p className="text-[9px] font-bold text-error">Save {fmt(productSavings(p))}</p>}
       </div>
     </button>
   );
@@ -1379,7 +1384,11 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
             <div>
               {product.price ? (
                 <>
-                  <p className="text-3xl font-black">{fmt(product.price)}</p>
+                  {hasDiscount(product) && <p className="text-sm text-muted-foreground line-through">{fmt(product.originalPrice!)}</p>}
+                  <div className="flex items-end gap-2">
+                    <p className="text-3xl font-black text-primary">{fmt(product.price)}</p>
+                    {hasDiscount(product) && <span className="mb-1 rounded-full bg-error/15 text-error px-2 py-1 text-[10px] font-black">Save {fmt(productSavings(product))}</span>}
+                  </div>
                   {product.financing && <p className="text-xs text-muted-foreground mt-0.5">or <span className="text-foreground font-bold">{fmt(Math.round(product.price / 60))}/mo</span> · 60mo @ 4.9%</p>}
                 </>
               ) : (
@@ -1498,7 +1507,10 @@ function CartDrawer({ cart, total, onClose, onInc, onDec, onCheckout }: {
                   <img src={p.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold line-clamp-1">{p.name}</p>
-                    <p className="text-sm font-black text-primary mt-0.5">{p.price ? fmt(p.price) : "Quote"}</p>
+                    <div className="mt-0.5 flex items-baseline gap-1.5">
+                      <p className="text-sm font-black text-primary">{p.price ? fmt(p.price) : "Quote"}</p>
+                      {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
+                    </div>
                   </div>
                   <div className="glass rounded-full flex items-center gap-1 p-1">
                     <button onClick={() => onDec(p.id)} className="h-6 w-6 rounded-full grid place-items-center"><Minus className="h-3 w-3" /></button>
