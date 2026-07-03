@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useAIConfig, usePaymentCards, useSecurity } from "@/lib/typhon-store";
 import { useI18n, LANGUAGES } from "@/lib/i18n";
+import { testGeminiConnection } from "@/lib/gemini";
 
 /* ============================================================
    AUTH SCREEN — login / register / google / phone
@@ -746,14 +747,9 @@ function AdminAI() {
     if (!draft.googleApiKey) { setTesting("fail"); setTestMsg("Add an API key first."); return; }
     setTesting("wait"); setTestMsg("Contacting Google AI…");
     try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(draft.model)}:generateContent?key=${encodeURIComponent(draft.googleApiKey)}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: "Reply with: OK" }] }] }),
-      });
-      const j: any = await res.json();
-      if (!res.ok) { setTesting("fail"); setTestMsg(j?.error?.message || `HTTP ${res.status}`); return; }
-      const text = j?.candidates?.[0]?.content?.parts?.[0]?.text || "(no text)";
-      setTesting("ok"); setTestMsg(`Connected · "${text.trim().slice(0, 60)}"`);
+      const result = await testGeminiConnection(draft.googleApiKey, draft.model);
+      setDraft({ ...draft, provider: "google", model: result.model });
+      setTesting("ok"); setTestMsg(`Connected · ${result.model} · "${result.text.trim().slice(0, 60)}"`);
     } catch (e: any) {
       setTesting("fail"); setTestMsg(e?.message || "Network error");
     }
