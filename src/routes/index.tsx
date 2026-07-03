@@ -716,7 +716,7 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
   };
 
   const callGemini = async (history: ChatMsg[], userText: string, imageDataUrl?: string | null): Promise<string> => {
-    const catalog = PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"} · ${p.category ?? "n/a"}`).join("\n");
+    const catalog = PRODUCTS.slice(0, 30).map(p => `${p.id} · ${p.name} · ${p.brand} · ${p.price ? "$" + p.price : "quote"}${hasDiscount(p) ? ` sale from $${p.originalPrice}` : ""} · ${p.category ?? "n/a"}`).join("\n");
     const sys = [
       aiCfg.systemPrompt,
       "",
@@ -732,24 +732,15 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
       `=== LANGUAGE DIRECTIVE ===`,
       `Always respond in ${langInfo.english} (${langInfo.name}). Translate any English brand terms naturally, keep product names and model codes as-is.`,
     ].join("\n");
-    const userParts: any[] = [];
-    if (imageDataUrl) {
-      const [meta, data] = imageDataUrl.split(",");
-      const mime = meta.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
-      userParts.push({ inline_data: { mime_type: mime, data } });
-    }
-    userParts.push({ text: userText || "Please analyze this image." });
-    const contents = [
-      ...history.filter(m => m.text && !m.image).map(m => ({ role: m.role === "ai" ? "model" : "user", parts: [{ text: m.text }] })),
-      { role: "user", parts: userParts },
-    ];
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(aiCfg.model)}:generateContent?key=${encodeURIComponent(aiCfg.googleApiKey)}`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ system_instruction: { parts: [{ text: sys }] }, contents }),
+    const result = await callGeminiApi({
+      apiKey: aiCfg.googleApiKey,
+      model: aiCfg.model,
+      system: sys,
+      history,
+      userText,
+      imageDataUrl,
     });
-    const j: any = await res.json();
-    if (!res.ok) throw new Error(j?.error?.message || `HTTP ${res.status}`);
-    return j?.candidates?.[0]?.content?.parts?.[0]?.text || "(no response)";
+    return result.text;
   };
 
   const send = async (t?: string) => {
