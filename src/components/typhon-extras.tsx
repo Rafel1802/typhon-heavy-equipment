@@ -1274,7 +1274,7 @@ function SecurityPanel() {
    LANGUAGE + REGION + CURRENCY PICKER
 ============================================================ */
 function LanguageRegionPanel({ country, setCountry }: { country: { country: string; currency: string }; setCountry: (c: { country: string; currency: string }) => void }) {
-  const { lang, setLang } = useI18n();
+  const { lang, setLang, t } = useI18n();
   const [q, setQ] = useState("");
   const filtered = LANGUAGES.filter(l =>
     !q || l.name.toLowerCase().includes(q.toLowerCase()) || l.english.toLowerCase().includes(q.toLowerCase()) || l.code.includes(q.toLowerCase())
@@ -1285,7 +1285,7 @@ function LanguageRegionPanel({ country, setCountry }: { country: { country: stri
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">App language</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{t("language")}</p>
         <div className="relative mb-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search language…"
@@ -1293,7 +1293,7 @@ function LanguageRegionPanel({ country, setCountry }: { country: { country: stri
         </div>
         <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-72 overflow-y-auto no-scrollbar">
           {filtered.map(l => (
-            <button key={l.code} onClick={() => setLang(l.code)}
+            <button key={l.code} onClick={() => { setLang(l.code); setCountry({ ...country, currency: l.currency }); }}
               className="w-full text-left px-4 py-3 text-sm font-semibold flex items-center justify-between active:bg-muted">
               <span className="flex items-center gap-3">
                 <span className="text-lg">{l.flag}</span>
@@ -1309,7 +1309,7 @@ function LanguageRegionPanel({ country, setCountry }: { country: { country: stri
       </div>
 
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Region</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{t("region")}</p>
         <div className="bg-card border rounded-2xl divide-y overflow-hidden max-h-52 overflow-y-auto no-scrollbar">
           {regions.map(r => (
             <button key={r} onClick={() => setCountry({ ...country, country: r })}
@@ -1321,7 +1321,7 @@ function LanguageRegionPanel({ country, setCountry }: { country: { country: stri
       </div>
 
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Currency</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">{t("currency")}</p>
         <div className="grid grid-cols-4 gap-2">
           {currencies.map(c => (
             <button key={c} onClick={() => setCountry({ ...country, currency: c })}
