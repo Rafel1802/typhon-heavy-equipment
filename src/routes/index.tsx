@@ -88,6 +88,7 @@ const CATEGORIES = [
 const fmt = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const hasDiscount = (p: Product) => !!(p.price && p.originalPrice && p.originalPrice > p.price);
 const discountPct = (p: Product) => hasDiscount(p) ? Math.round((1 - (p.price! / p.originalPrice!)) * 100) : 0;
+const productSavings = (p: Product) => hasDiscount(p) ? p.originalPrice! - p.price! : 0;
 
 function App() {
   const [splashDone, setSplashDone] = useState(false);
