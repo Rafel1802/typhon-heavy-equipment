@@ -27,7 +27,7 @@ import {
   VerifiedSheet, SearchDropdown, HeroSlideshow,
 } from "@/components/typhon-panels";
 import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
-import { useI18n, LANGUAGES } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { SplashScreen } from "@/components/SplashScreen";
 import { translateDOM, restoreDOM } from "@/lib/auto-translate";
 import { callGeminiApi } from "@/lib/gemini";
@@ -823,6 +823,7 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
                       <p className="font-bold text-sm truncate">{p.name}</p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className="text-xs text-primary font-black">{p.price ? fmt(p.price) : "Request Quote"}</p>
+                        {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
                         <span className="text-[10px] text-muted-foreground">★ {p.rating}</span>
                       </div>
                     </div>
@@ -1195,7 +1196,10 @@ function AccountScreen(props: {
               <img src={p.image} alt="" className="aspect-square w-full object-cover" />
               <div className="p-2">
                 <p className="text-xs font-bold line-clamp-1">{p.name}</p>
-                <p className="text-sm font-black text-primary mt-1">{p.price ? fmt(p.price) : "Quote"}</p>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <p className="text-sm font-black text-primary">{p.price ? fmt(p.price) : "Quote"}</p>
+                  {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
+                </div>
               </div>
             </button>
           ))}
@@ -1278,7 +1282,7 @@ function ProductCard({ p, onClick, fav, onFav, onAdd }: {
         <img src={p.image} alt={p.name} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
         {p.badge && (
           <span className={`absolute top-2 left-2 rounded-full px-2 py-0.5 text-[9px] font-black tracking-wide ${
-            p.badge === "Sale" ? "bg-error text-white" :
+            p.badge === "Sale" || p.badge?.startsWith("Save") ? "bg-error text-white" :
             p.badge === "New" ? "bg-foreground text-background" :
             p.badge === "Best Seller" ? "bg-primary text-primary-foreground" :
             "glass-strong"
@@ -1300,7 +1304,10 @@ function ProductCard({ p, onClick, fav, onFav, onAdd }: {
         <div className="flex items-end justify-between pt-1">
           <div>
             {p.price ? (
-              <p className="font-black text-sm">{fmt(p.price)}</p>
+              <>
+                <p className="font-black text-sm text-primary">{fmt(p.price)}</p>
+                {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
+              </>
             ) : (
               <p className="text-[11px] font-black text-primary">Request Quote</p>
             )}
@@ -1321,13 +1328,15 @@ function FlashCard({ p, onClick }: { p: Product; onClick: () => void }) {
     <button onClick={onClick} className="shrink-0 w-36 bg-card border rounded-2xl overflow-hidden text-left">
       <div className="relative aspect-square bg-muted">
         <img src={p.image} alt="" className="h-full w-full object-cover" loading="lazy" />
-        <span className="absolute top-2 left-2 bg-error text-white text-[9px] font-black rounded-full px-2 py-0.5">-15%</span>
+        {hasDiscount(p) && <span className="absolute top-2 left-2 bg-error text-white text-[9px] font-black rounded-full px-2 py-0.5">-{discountPct(p)}%</span>}
       </div>
       <div className="p-2">
         <p className="text-[11px] font-bold leading-tight line-clamp-1">{p.name}</p>
         <div className="flex items-baseline gap-1 mt-1">
-          <span className="font-black text-sm text-primary">{p.price ? fmt(p.price * 0.85) : "Quote"}</span>
+          <span className="font-black text-sm text-primary">{p.price ? fmt(p.price) : "Quote"}</span>
+          {hasDiscount(p) && <span className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</span>}
         </div>
+        {hasDiscount(p) && <p className="text-[9px] font-bold text-error">Save {fmt(productSavings(p))}</p>}
       </div>
     </button>
   );
@@ -1374,7 +1383,11 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
             <div>
               {product.price ? (
                 <>
-                  <p className="text-3xl font-black">{fmt(product.price)}</p>
+                  {hasDiscount(product) && <p className="text-sm text-muted-foreground line-through">{fmt(product.originalPrice!)}</p>}
+                  <div className="flex items-end gap-2">
+                    <p className="text-3xl font-black text-primary">{fmt(product.price)}</p>
+                    {hasDiscount(product) && <span className="mb-1 rounded-full bg-error/15 text-error px-2 py-1 text-[10px] font-black">Save {fmt(productSavings(product))}</span>}
+                  </div>
                   {product.financing && <p className="text-xs text-muted-foreground mt-0.5">or <span className="text-foreground font-bold">{fmt(Math.round(product.price / 60))}/mo</span> · 60mo @ 4.9%</p>}
                 </>
               ) : (
@@ -1493,7 +1506,10 @@ function CartDrawer({ cart, total, onClose, onInc, onDec, onCheckout }: {
                   <img src={p.image} alt="" className="h-16 w-16 rounded-xl object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold line-clamp-1">{p.name}</p>
-                    <p className="text-sm font-black text-primary mt-0.5">{p.price ? fmt(p.price) : "Quote"}</p>
+                    <div className="mt-0.5 flex items-baseline gap-1.5">
+                      <p className="text-sm font-black text-primary">{p.price ? fmt(p.price) : "Quote"}</p>
+                      {hasDiscount(p) && <p className="text-[10px] text-muted-foreground line-through">{fmt(p.originalPrice!)}</p>}
+                    </div>
                   </div>
                   <div className="glass rounded-full flex items-center gap-1 p-1">
                     <button onClick={() => onDec(p.id)} className="h-6 w-6 rounded-full grid place-items-center"><Minus className="h-3 w-3" /></button>
