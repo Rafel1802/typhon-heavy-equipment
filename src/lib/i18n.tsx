@@ -135,3 +135,51 @@ export function useI18n() {
   if (!c) throw new Error("useI18n must be used inside <LangProvider>");
   return c;
 }
+
+const PHRASE_KEYS: Record<string, keyof typeof T.en> = {
+  "Shop": "shop",
+  "Home": "home",
+  "AI": "ai",
+  "Orders": "orders",
+  "Account": "account",
+  "My Orders": "orders",
+  "My orders": "orders",
+  "Your Cart": "cart",
+  "Cart": "cart",
+  "Wishlist": "wishlist",
+  "Add to Cart": "addToCart",
+  "Add to cart": "addToCart",
+  "Buy Now": "buyNow",
+  "Buy now": "buyNow",
+  "Checkout": "checkout",
+  "Quote": "quote",
+  "Request Quote": "quote",
+  "Settings": "settings",
+  "Language": "language",
+  "App language": "language",
+  "Region": "region",
+  "Currency": "currency",
+  "Profile": "profile",
+  "Log out": "signOut",
+  "Sign Out": "signOut",
+  "Categories": "categories",
+  "Featured": "featured",
+  "Flash Deals": "flashDeals",
+  "Recommended for you": "recommended",
+  "Save": "save",
+  "Cancel": "cancel",
+  "Edit": "edit",
+  "Delete": "delete",
+};
+
+/** Deterministic offline translation for known app UI phrases. No web translation API. */
+export function translateStaticText(input: string, lang: LangCode) {
+  if (!input || lang === "en") return input;
+  const trimmed = input.trim();
+  const key = PHRASE_KEYS[trimmed] ?? (Object.keys(T.en).find(k => T.en[k] === trimmed) as keyof typeof T.en | undefined);
+  if (!key) return input;
+  const translated = T[lang]?.[key] ?? T.en[key];
+  const lead = input.match(/^\s*/)?.[0] || "";
+  const tail = input.match(/\s*$/)?.[0] || "";
+  return lead + translated + tail;
+}
