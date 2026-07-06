@@ -11,7 +11,7 @@ type GeminiCall = {
 
 type GeminiResult = { text: string; model: string };
 
-const FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"];
+const FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite", "gemini-1.5-flash", "gemini-1.5-flash-8b"];
 
 function cleanModel(model: string) {
   return (model || "gemini-2.0-flash").trim().replace(/^models\//, "");
