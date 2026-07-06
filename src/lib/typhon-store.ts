@@ -15,7 +15,24 @@ const K = {
   aiConfig: "typhon.aiConfig",
   payments: "typhon.payments",
   security: "typhon.security",
+  reviews: "typhon.reviews",
 };
+
+export type ProductReview = {
+  id: string; productId: string; author: string; initials: string;
+  rating: number; text: string; ts: number; verified?: boolean;
+};
+
+const DEFAULT_REVIEWS: ProductReview[] = [
+  { id: "r1", productId: "p1", author: "Marcus L.", initials: "ML", rating: 5, text: "Rock solid TX-35. Dug trenches all week, zero downtime. Typhon support answered on the first ring.", ts: Date.now() - 5 * 86400000, verified: true },
+  { id: "r2", productId: "p1", author: "Sara K.", initials: "SK", rating: 4, text: "Great little excavator, hydraulics are smooth. Only wish it came with the thumb pre-installed.", ts: Date.now() - 12 * 86400000, verified: true },
+  { id: "r3", productId: "p2", author: "Diego R.", initials: "DR", rating: 5, text: "SK-260 handles our concrete site perfectly. Financing at 6.9% was painless.", ts: Date.now() - 3 * 86400000, verified: true },
+  { id: "r4", productId: "p3", author: "Fleet Ops · Vega Co.", initials: "VC", rating: 5, text: "Bought three WL-50s for the fleet. Delivery on time, warranty is legit.", ts: Date.now() - 20 * 86400000, verified: true },
+  { id: "r5", productId: "p4", author: "Ken W.", initials: "KW", rating: 4, text: "FL-30 lifts our pallets easy. A bit thirsty on diesel but built like a tank.", ts: Date.now() - 8 * 86400000 },
+  { id: "r6", productId: "p5", author: "Job Site · Miller Co.", initials: "MC", rating: 5, text: "Bucket teeth are seriously heavy-duty. Fits our skid steer perfectly.", ts: Date.now() - 15 * 86400000, verified: true },
+];
+
+export function useReviews() { return useLocal<ProductReview[]>(K.reviews, DEFAULT_REVIEWS); }
 
 export type AIConfig = {
   provider: "builtin" | "google";

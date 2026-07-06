@@ -7,6 +7,7 @@ import {
   Sun, Moon, ArrowRight, Tag, Zap, MapPin, CheckCircle2, Clock,
   FileText, MessageCircle, Settings, LogOut, BadgeCheck, Filter,
   Shield, Wallet, CreditCard, RotateCcw, Eye, Gift, Receipt, Camera,
+  Trash2, ThumbsUp,
 } from "lucide-react";
 
 import excavator from "@/assets/excavator.jpg";
@@ -26,7 +27,7 @@ import {
   FollowingSheet, HistorySheet, WalletSheet, AddressesSheet, QuotesSheet,
   VerifiedSheet, SearchDropdown, HeroSlideshow,
 } from "@/components/typhon-panels";
-import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
+import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useReviews, useWishlist, type Banner, type ChatMsg, type ChatSession, type ProductReview } from "@/lib/typhon-store";
 import { useI18n } from "@/lib/i18n";
 import { SplashScreen } from "@/components/SplashScreen";
 import { translateDOM, restoreDOM } from "@/lib/auto-translate";
@@ -286,6 +287,9 @@ function App() {
       {selected && (
         <ProductDetail
           product={selected}
+          allProducts={PRODUCTS}
+          isAdmin={isAdmin}
+          onOpenProduct={openProduct}
           onClose={() => setSelected(null)}
           onAdd={() => { addToCart(selected.id); setSelected(null); setCartOpen(true); }}
           isFav={favs.has(selected.id)}
@@ -396,7 +400,7 @@ function HomeScreen(props: {
               <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
             </span>
             {props.cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
+              <span key={"n-" + props.cartCount} className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center animate-cart-bounce">{props.cartCount}</span>
             )}
           </button>
           <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm overflow-hidden">
@@ -913,9 +917,11 @@ function AIScreen(props: { onOpenProduct: (p: Product) => void; addToCart: (id: 
 
 
 /* ===================== ORDERS ===================== */
+type OrderRow = { id: string; name: string; price: number; image: string; status: "To pay" | "To ship" | "To receive" | "To review" | "Refunds" | "Delivered"; step: number; qty: number };
+
 function OrdersScreen() {
-  type Status = "To pay" | "To ship" | "To receive" | "To review" | "Refunds" | "Delivered";
-  const orders: { id: string; name: string; price: number; image: string; status: Status; step: number; qty: number }[] = [
+  type Status = OrderRow["status"];
+  const orders: OrderRow[] = [
     { id: "84219", name: "TX-35 Mini Excavator", price: 38500, image: excavator, status: "To receive", step: 5, qty: 1 },
     { id: "84102", name: "SK-260 Skid Steer Loader", price: 42900, image: skidsteer, status: "Delivered", step: 9, qty: 1 },
     { id: "83992", name: '48" Heavy-Duty Bucket', price: 2890, image: attachment, status: "To ship", step: 3, qty: 2 },
@@ -924,6 +930,7 @@ function OrdersScreen() {
   ];
   const tabs: ("All" | Status)[] = ["All", "To pay", "To ship", "To receive", "To review", "Refunds"];
   const [active, setActive] = useState<typeof tabs[number]>("All");
+  const [trackOrder, setTrackOrder] = useState<OrderRow | null>(null);
   const filtered = active === "All" ? orders : orders.filter(o => o.status === active);
 
   const statusStyle = (s: Status) =>
@@ -936,10 +943,18 @@ function OrdersScreen() {
 
   const primaryAction = (s: Status) =>
     s === "To pay" ? "Pay now" :
-    s === "To ship" ? "Remind seller" :
+    s === "To ship" ? "Track" :
     s === "To receive" ? "Track" :
     s === "To review" ? "Review" :
     s === "Refunds" ? "View status" : "Buy again";
+
+  const handleAction = (o: OrderRow) => {
+    if (o.status === "To pay") { alert(`Redirecting to payment for order #${o.id}…`); return; }
+    if (o.status === "To review") { alert(`Opening review form for order #${o.id}…`); return; }
+    if (o.status === "Delivered") { alert(`Re-ordering ${o.name}…`); return; }
+    if (o.status === "Refunds") { setTrackOrder(o); return; }
+    setTrackOrder(o); // Track flow for To ship / To receive
+  };
 
   return (
     <div className="space-y-4">
@@ -992,15 +1007,15 @@ function OrdersScreen() {
               {o.status !== "To pay" && o.status !== "Delivered" && <Timeline step={o.step} />}
 
               <div className="flex gap-2">
-                <button className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
+                <button onClick={() => alert(`Opening chat with Typhon Support · order #${o.id}`)} className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
                   <MessageCircle className="h-3 w-3" /> Support
                 </button>
                 {o.status === "Delivered" && (
-                  <button className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
+                  <button onClick={() => alert(`Return request started for order #${o.id}`)} className="flex-1 rounded-xl bg-muted text-foreground text-xs font-bold py-2 flex items-center justify-center gap-1">
                     <RotateCcw className="h-3 w-3" /> Return
                   </button>
                 )}
-                <button className={`flex-[1.4] rounded-xl text-xs font-black py-2 ${
+                <button onClick={() => handleAction(o)} className={`flex-[1.4] rounded-xl text-xs font-black py-2 active:scale-95 transition-transform ${
                   o.status === "To pay" ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
                 }`}>{primaryAction(o.status)}</button>
               </div>
@@ -1008,6 +1023,77 @@ function OrdersScreen() {
           ))}
         </div>
       )}
+
+      {trackOrder && <TrackingSheet order={trackOrder} onClose={() => setTrackOrder(null)} />}
+    </div>
+  );
+}
+
+function TrackingSheet({ order, onClose }: { order: OrderRow; onClose: () => void }) {
+  const stages = ["Received", "Paid", "Prep", "Ready", "Transit", "Port", "Customs", "Out for delivery", "Delivered"];
+  const now = Date.now();
+  const events = stages.map((label, i) => ({
+    label,
+    ts: now - (stages.length - 1 - i) * 22 * 3600 * 1000,
+    done: i <= order.step,
+    active: i === order.step,
+    note:
+      i === 0 ? "Order received by Typhon fulfillment · Dallas, TX" :
+      i === 1 ? "Payment authorized · Visa ••3568" :
+      i === 2 ? "Machine prepped, pre-delivery inspection passed" :
+      i === 3 ? "Loaded onto Typhon carrier T-441" :
+      i === 4 ? "In transit · I-20 corridor · TX → destination hub" :
+      i === 5 ? "Arrived at regional port · Fort Worth Logistics Center" :
+      i === 6 ? "Cleared customs & DOT documentation" :
+      i === 7 ? "Out for delivery — driver Mike C. · ETA soon" :
+      "Delivered & signed off — thank you for choosing Typhon.",
+  }));
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/60 grid place-items-end md:place-items-center p-3 md:p-6 animate-float-in" onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className="w-full max-w-[420px] bg-background rounded-[36px] border shadow-2xl overflow-hidden">
+        <div className="p-5 border-b flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Live tracking</p>
+            <h2 className="text-lg font-black tracking-tight">Order #{order.id}</h2>
+            <p className="text-xs text-muted-foreground truncate">{order.name}</p>
+          </div>
+          <button onClick={onClose} className="h-9 w-9 rounded-full bg-muted grid place-items-center"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="p-5 border-b flex items-center gap-3 bg-primary/5">
+          <div className="h-11 w-11 rounded-2xl bg-primary text-primary-foreground grid place-items-center">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold">Carrier · Typhon Freight T-441</p>
+            <p className="text-[10px] text-muted-foreground">Waybill 1Z-TYP-{order.id} · ETA {new Date(now + 36 * 3600 * 1000).toLocaleDateString()}</p>
+          </div>
+          <button onClick={() => alert("Copied tracking number 1Z-TYP-" + order.id)} className="rounded-full bg-foreground text-background text-[10px] font-black px-3 py-1.5">Copy</button>
+        </div>
+
+        <div className="max-h-[50vh] overflow-y-auto no-scrollbar p-5 space-y-4">
+          {events.slice().reverse().map((e, idx) => (
+            <div key={e.label} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div className={`h-3 w-3 rounded-full border-2 ${e.done ? "bg-primary border-primary" : "bg-card border-border"} ${e.active ? "ring-4 ring-primary/25" : ""}`} />
+                {idx < events.length - 1 && <div className={`w-0.5 flex-1 min-h-6 ${e.done ? "bg-primary/40" : "bg-border"}`} />}
+              </div>
+              <div className="flex-1 pb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-xs font-black ${e.done ? "text-foreground" : "text-muted-foreground"}`}>{e.label}</p>
+                  <p className="text-[10px] text-muted-foreground shrink-0">{e.done ? new Date(e.ts).toLocaleString() : "Pending"}</p>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{e.note}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-4 border-t flex gap-2">
+          <button onClick={() => alert("Opening Typhon Support chat…")} className="flex-1 rounded-2xl bg-muted text-foreground font-bold py-3 text-xs flex items-center justify-center gap-1.5"><MessageCircle className="h-3.5 w-3.5" /> Support</button>
+          <button onClick={onClose} className="flex-[1.4] rounded-2xl bg-primary text-primary-foreground font-black py-3 text-xs">Done</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1242,7 +1328,7 @@ function BottomNav({ tab, setTab, cartCount }: { tab: TabKey; setTab: (t: TabKey
               <div className="relative">
                 <Icon className={`h-5 w-5 ${active ? "" : ""}`} strokeWidth={active ? 2.5 : 2} />
                 {key === "orders" && cartCount > 0 && (
-                  <span className="absolute -top-1 -right-2 h-3.5 min-w-3.5 px-1 rounded-full bg-error text-white text-[9px] font-bold grid place-items-center">{cartCount}</span>
+                  <span key={"nav-" + cartCount} className="absolute -top-1 -right-2 h-3.5 min-w-3.5 px-1 rounded-full bg-error text-white text-[9px] font-bold grid place-items-center animate-cart-bounce">{cartCount}</span>
                 )}
               </div>
               <span className={`text-[9px] font-bold ${active ? "" : ""}`}>{label}</span>
@@ -1344,9 +1430,13 @@ function FlashCard({ p, onClick }: { p: Product; onClick: () => void }) {
 }
 
 /* ===================== PRODUCT DETAIL ===================== */
-function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
-  product: Product; onClose: () => void; onAdd: () => void; isFav: boolean; onFav: () => void;
+function ProductDetail({ product, allProducts, isAdmin, onOpenProduct, onClose, onAdd, isFav, onFav }: {
+  product: Product; allProducts: Product[]; isAdmin: boolean;
+  onOpenProduct: (p: Product) => void;
+  onClose: () => void; onAdd: () => void; isFav: boolean; onFav: () => void;
 }) {
+  const related = allProducts.filter(p => p.id !== product.id && (p.category === product.category || p.brand === product.brand)).slice(0, 6);
+  const fallbackRelated = related.length ? related : allProducts.filter(p => p.id !== product.id).slice(0, 6);
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-3 md:p-6 animate-float-in" onClick={onClose}>
       <div onClick={e => e.stopPropagation()}
@@ -1450,6 +1540,37 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
             <ChevronRight className="h-4 w-4" />
           </button>
 
+          {/* Related products */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">You may also like</h3>
+              <span className="text-[10px] text-muted-foreground">{fallbackRelated.length} items</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+              {fallbackRelated.map(rp => (
+                <button key={rp.id} onClick={() => onOpenProduct(rp)} className="shrink-0 w-36 bg-card border rounded-2xl overflow-hidden text-left active:scale-95 transition-transform">
+                  <div className="relative aspect-square bg-muted">
+                    <img src={rp.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    {hasDiscount(rp) && <span className="absolute top-2 left-2 bg-error text-white text-[9px] font-black rounded-full px-2 py-0.5">-{discountPct(rp)}%</span>}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-[11px] font-bold leading-tight line-clamp-2 min-h-[2.2rem]">{rp.name}</p>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="font-black text-xs text-primary">{rp.price ? fmt(rp.price) : "Quote"}</span>
+                      {hasDiscount(rp) && <span className="text-[9px] text-muted-foreground line-through">{fmt(rp.originalPrice!)}</span>}
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground">
+                      <Star className="h-2.5 w-2.5 fill-primary text-primary" /> {rp.rating} · {rp.reviews}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reviews */}
+          <ReviewsSection productId={product.id} isAdmin={isAdmin} />
+
           <div className="h-20" />
         </div>
 
@@ -1465,6 +1586,121 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
             Buy Now
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewsSection({ productId, isAdmin }: { productId: string; isAdmin: boolean }) {
+  const [reviews, setReviews] = useReviews();
+  const [text, setText] = useState("");
+  const [rating, setRating] = useState(5);
+  const items = reviews.filter(r => r.productId === productId).sort((a, b) => b.ts - a.ts);
+  const avg = items.length ? (items.reduce((s, r) => s + r.rating, 0) / items.length) : 0;
+  const dist = [5, 4, 3, 2, 1].map(n => ({ n, c: items.filter(r => r.rating === n).length }));
+
+  const submit = () => {
+    const t = text.trim();
+    if (!t) return;
+    const r: ProductReview = {
+      id: "r" + Date.now(), productId, author: "You", initials: "YO",
+      rating, text: t, ts: Date.now(),
+    };
+    setReviews(prev => [r, ...prev]);
+    setText(""); setRating(5);
+  };
+  const remove = (id: string) => setReviews(prev => prev.filter(r => r.id !== id));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer reviews</h3>
+        <span className="text-[10px] text-muted-foreground">{items.length} reviews</span>
+      </div>
+
+      {items.length > 0 && (
+        <div className="bg-card border rounded-2xl p-4 mb-3 flex gap-4">
+          <div className="text-center">
+            <p className="text-3xl font-black text-primary">{avg.toFixed(1)}</p>
+            <div className="flex justify-center gap-0.5 mt-1">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} className={`h-3 w-3 ${i <= Math.round(avg) ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">out of 5</p>
+          </div>
+          <div className="flex-1 space-y-1 min-w-0">
+            {dist.map(d => (
+              <div key={d.n} className="flex items-center gap-2 text-[10px]">
+                <span className="w-2 font-bold">{d.n}</span>
+                <Star className="h-2.5 w-2.5 fill-primary text-primary" />
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: items.length ? `${(d.c / items.length) * 100}%` : "0%" }} />
+                </div>
+                <span className="w-4 text-right text-muted-foreground">{d.c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Compose */}
+      <div className="bg-card border rounded-2xl p-3 mb-3 space-y-2">
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">Your rating</span>
+          {[1,2,3,4,5].map(i => (
+            <button key={i} onClick={() => setRating(i)} className="h-6 w-6 grid place-items-center">
+              <Star className={`h-4 w-4 ${i <= rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={text} onChange={e => setText(e.target.value)}
+          placeholder="Share your experience with this machine…"
+          rows={2}
+          className="w-full bg-transparent text-xs outline-none resize-none border border-border rounded-xl p-2.5 placeholder:text-muted-foreground" />
+        <div className="flex justify-end">
+          <button onClick={submit} disabled={!text.trim()}
+            className="rounded-full bg-primary text-primary-foreground text-[11px] font-black px-4 py-1.5 disabled:opacity-50">
+            Post review
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {items.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-6">No reviews yet. Be the first to review this machine.</p>
+        )}
+        {items.map(r => (
+          <div key={r.id} className="bg-card border rounded-2xl p-3">
+            <div className="flex items-start gap-2.5">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-black text-[10px] shrink-0">{r.initials}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-xs font-bold truncate">{r.author}</p>
+                  {r.verified && <span className="text-[9px] font-bold text-success bg-success/10 rounded-full px-1.5 py-0.5">Verified buyer</span>}
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  {[1,2,3,4,5].map(i => (
+                    <Star key={i} className={`h-2.5 w-2.5 ${i <= r.rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                  ))}
+                  <span className="text-[10px] text-muted-foreground ml-1">{new Date(r.ts).toLocaleDateString()}</span>
+                </div>
+                <p className="text-xs mt-1.5 leading-relaxed">{r.text}</p>
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                  <button className="flex items-center gap-1 hover:text-foreground"><ThumbsUp className="h-3 w-3" /> Helpful</button>
+                  <button className="flex items-center gap-1 hover:text-foreground"><MessageCircle className="h-3 w-3" /> Reply</button>
+                </div>
+              </div>
+              {isAdmin && (
+                <button onClick={() => remove(r.id)} title="Remove comment"
+                  className="h-7 w-7 rounded-full bg-error/10 text-error grid place-items-center shrink-0">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
