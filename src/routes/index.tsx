@@ -397,7 +397,7 @@ function HomeScreen(props: {
               <IconBtn><ShoppingCart className="h-4 w-4" /></IconBtn>
             </span>
             {props.cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center">{props.cartCount}</span>
+              <span key={"n-" + props.cartCount} className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold grid place-items-center animate-cart-bounce">{props.cartCount}</span>
             )}
           </button>
           <button onClick={() => props.setTab?.("account")} className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-bold text-sm overflow-hidden">
