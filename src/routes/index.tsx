@@ -287,6 +287,9 @@ function App() {
       {selected && (
         <ProductDetail
           product={selected}
+          allProducts={PRODUCTS}
+          isAdmin={isAdmin}
+          onOpenProduct={openProduct}
           onClose={() => setSelected(null)}
           onAdd={() => { addToCart(selected.id); setSelected(null); setCartOpen(true); }}
           isFav={favs.has(selected.id)}
