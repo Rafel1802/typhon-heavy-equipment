@@ -1243,7 +1243,7 @@ function BottomNav({ tab, setTab, cartCount }: { tab: TabKey; setTab: (t: TabKey
               <div className="relative">
                 <Icon className={`h-5 w-5 ${active ? "" : ""}`} strokeWidth={active ? 2.5 : 2} />
                 {key === "orders" && cartCount > 0 && (
-                  <span className="absolute -top-1 -right-2 h-3.5 min-w-3.5 px-1 rounded-full bg-error text-white text-[9px] font-bold grid place-items-center">{cartCount}</span>
+                  <span key={"nav-" + cartCount} className="absolute -top-1 -right-2 h-3.5 min-w-3.5 px-1 rounded-full bg-error text-white text-[9px] font-bold grid place-items-center animate-cart-bounce">{cartCount}</span>
                 )}
               </div>
               <span className={`text-[9px] font-bold ${active ? "" : ""}`}>{label}</span>
