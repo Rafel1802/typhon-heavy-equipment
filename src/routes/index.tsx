@@ -26,7 +26,7 @@ import {
   FollowingSheet, HistorySheet, WalletSheet, AddressesSheet, QuotesSheet,
   VerifiedSheet, SearchDropdown, HeroSlideshow,
 } from "@/components/typhon-panels";
-import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useWishlist, type Banner, type ChatMsg, type ChatSession } from "@/lib/typhon-store";
+import { useAIConfig, useBanners, useChatSessions, useProfile, useRecentlyViewed, useReviews, useWishlist, type Banner, type ChatMsg, type ChatSession, type ProductReview } from "@/lib/typhon-store";
 import { useI18n } from "@/lib/i18n";
 import { SplashScreen } from "@/components/SplashScreen";
 import { translateDOM, restoreDOM } from "@/lib/auto-translate";
