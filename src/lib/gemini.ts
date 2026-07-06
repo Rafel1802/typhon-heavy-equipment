@@ -81,6 +81,7 @@ export async function callGeminiApi(call: GeminiCall): Promise<GeminiResult> {
   const preferred = cleanModel(call.model);
   const models = Array.from(new Set([preferred, ...FALLBACK_MODELS.filter(m => m !== preferred)]));
   const errors: string[] = [];
+  let quotaHit = false;
 
   for (const model of models) {
     for (const useSystemInstruction of [true, false]) {
@@ -89,11 +90,13 @@ export async function callGeminiApi(call: GeminiCall): Promise<GeminiResult> {
       } catch (e: any) {
         const message = e?.message || String(e);
         errors.push(`${model}: ${message}`);
+        if (/quota|rate.?limit|429|exceeded/i.test(message)) { quotaHit = true; break; } // try next model
         const recoverable = /not found|not supported|system|role|contents|invalid/i.test(message);
         if (!recoverable) throw new Error(message);
       }
     }
   }
+  if (quotaHit) throw new Error("Google Gemini quota exceeded on every model for this API key. Wait a minute and try again, or use a key from a paid Google AI Studio project.");
   throw new Error(errors[0] || "Google AI connection failed.");
 }
 
