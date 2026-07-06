@@ -1430,9 +1430,13 @@ function FlashCard({ p, onClick }: { p: Product; onClick: () => void }) {
 }
 
 /* ===================== PRODUCT DETAIL ===================== */
-function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
-  product: Product; onClose: () => void; onAdd: () => void; isFav: boolean; onFav: () => void;
+function ProductDetail({ product, allProducts, isAdmin, onOpenProduct, onClose, onAdd, isFav, onFav }: {
+  product: Product; allProducts: Product[]; isAdmin: boolean;
+  onOpenProduct: (p: Product) => void;
+  onClose: () => void; onAdd: () => void; isFav: boolean; onFav: () => void;
 }) {
+  const related = allProducts.filter(p => p.id !== product.id && (p.category === product.category || p.brand === product.brand)).slice(0, 6);
+  const fallbackRelated = related.length ? related : allProducts.filter(p => p.id !== product.id).slice(0, 6);
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-3 md:p-6 animate-float-in" onClick={onClose}>
       <div onClick={e => e.stopPropagation()}
@@ -1536,6 +1540,37 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
             <ChevronRight className="h-4 w-4" />
           </button>
 
+          {/* Related products */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">You may also like</h3>
+              <span className="text-[10px] text-muted-foreground">{fallbackRelated.length} items</span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+              {fallbackRelated.map(rp => (
+                <button key={rp.id} onClick={() => onOpenProduct(rp)} className="shrink-0 w-36 bg-card border rounded-2xl overflow-hidden text-left active:scale-95 transition-transform">
+                  <div className="relative aspect-square bg-muted">
+                    <img src={rp.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    {hasDiscount(rp) && <span className="absolute top-2 left-2 bg-error text-white text-[9px] font-black rounded-full px-2 py-0.5">-{discountPct(rp)}%</span>}
+                  </div>
+                  <div className="p-2">
+                    <p className="text-[11px] font-bold leading-tight line-clamp-2 min-h-[2.2rem]">{rp.name}</p>
+                    <div className="flex items-baseline gap-1 mt-1">
+                      <span className="font-black text-xs text-primary">{rp.price ? fmt(rp.price) : "Quote"}</span>
+                      {hasDiscount(rp) && <span className="text-[9px] text-muted-foreground line-through">{fmt(rp.originalPrice!)}</span>}
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground">
+                      <Star className="h-2.5 w-2.5 fill-primary text-primary" /> {rp.rating} · {rp.reviews}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Reviews */}
+          <ReviewsSection productId={product.id} isAdmin={isAdmin} />
+
           <div className="h-20" />
         </div>
 
@@ -1551,6 +1586,121 @@ function ProductDetail({ product, onClose, onAdd, isFav, onFav }: {
             Buy Now
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewsSection({ productId, isAdmin }: { productId: string; isAdmin: boolean }) {
+  const [reviews, setReviews] = useReviews();
+  const [text, setText] = useState("");
+  const [rating, setRating] = useState(5);
+  const items = reviews.filter(r => r.productId === productId).sort((a, b) => b.ts - a.ts);
+  const avg = items.length ? (items.reduce((s, r) => s + r.rating, 0) / items.length) : 0;
+  const dist = [5, 4, 3, 2, 1].map(n => ({ n, c: items.filter(r => r.rating === n).length }));
+
+  const submit = () => {
+    const t = text.trim();
+    if (!t) return;
+    const r: ProductReview = {
+      id: "r" + Date.now(), productId, author: "You", initials: "YO",
+      rating, text: t, ts: Date.now(),
+    };
+    setReviews(prev => [r, ...prev]);
+    setText(""); setRating(5);
+  };
+  const remove = (id: string) => setReviews(prev => prev.filter(r => r.id !== id));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer reviews</h3>
+        <span className="text-[10px] text-muted-foreground">{items.length} reviews</span>
+      </div>
+
+      {items.length > 0 && (
+        <div className="bg-card border rounded-2xl p-4 mb-3 flex gap-4">
+          <div className="text-center">
+            <p className="text-3xl font-black text-primary">{avg.toFixed(1)}</p>
+            <div className="flex justify-center gap-0.5 mt-1">
+              {[1,2,3,4,5].map(i => (
+                <Star key={i} className={`h-3 w-3 ${i <= Math.round(avg) ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">out of 5</p>
+          </div>
+          <div className="flex-1 space-y-1 min-w-0">
+            {dist.map(d => (
+              <div key={d.n} className="flex items-center gap-2 text-[10px]">
+                <span className="w-2 font-bold">{d.n}</span>
+                <Star className="h-2.5 w-2.5 fill-primary text-primary" />
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-primary" style={{ width: items.length ? `${(d.c / items.length) * 100}%` : "0%" }} />
+                </div>
+                <span className="w-4 text-right text-muted-foreground">{d.c}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Compose */}
+      <div className="bg-card border rounded-2xl p-3 mb-3 space-y-2">
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mr-1">Your rating</span>
+          {[1,2,3,4,5].map(i => (
+            <button key={i} onClick={() => setRating(i)} className="h-6 w-6 grid place-items-center">
+              <Star className={`h-4 w-4 ${i <= rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={text} onChange={e => setText(e.target.value)}
+          placeholder="Share your experience with this machine…"
+          rows={2}
+          className="w-full bg-transparent text-xs outline-none resize-none border border-border rounded-xl p-2.5 placeholder:text-muted-foreground" />
+        <div className="flex justify-end">
+          <button onClick={submit} disabled={!text.trim()}
+            className="rounded-full bg-primary text-primary-foreground text-[11px] font-black px-4 py-1.5 disabled:opacity-50">
+            Post review
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {items.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-6">No reviews yet. Be the first to review this machine.</p>
+        )}
+        {items.map(r => (
+          <div key={r.id} className="bg-card border rounded-2xl p-3">
+            <div className="flex items-start gap-2.5">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-blue-700 grid place-items-center text-primary-foreground font-black text-[10px] shrink-0">{r.initials}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <p className="text-xs font-bold truncate">{r.author}</p>
+                  {r.verified && <span className="text-[9px] font-bold text-success bg-success/10 rounded-full px-1.5 py-0.5">Verified buyer</span>}
+                </div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  {[1,2,3,4,5].map(i => (
+                    <Star key={i} className={`h-2.5 w-2.5 ${i <= r.rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                  ))}
+                  <span className="text-[10px] text-muted-foreground ml-1">{new Date(r.ts).toLocaleDateString()}</span>
+                </div>
+                <p className="text-xs mt-1.5 leading-relaxed">{r.text}</p>
+                <div className="flex items-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                  <button className="flex items-center gap-1 hover:text-foreground"><ThumbsUp className="h-3 w-3" /> Helpful</button>
+                  <button className="flex items-center gap-1 hover:text-foreground"><MessageCircle className="h-3 w-3" /> Reply</button>
+                </div>
+              </div>
+              {isAdmin && (
+                <button onClick={() => remove(r.id)} title="Remove comment"
+                  className="h-7 w-7 rounded-full bg-error/10 text-error grid place-items-center shrink-0">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
